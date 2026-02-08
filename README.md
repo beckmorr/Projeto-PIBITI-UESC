@@ -85,7 +85,7 @@ python -m venv venv
 # Linux/Mac: source venv/bin/activate
 
 # Instale as dependências
-pip install fastapi uvicorn xgboost pandas shap matplotlib scikit-learn
+pip install -r .\requirements.txt
 
 # Inicie o servidor
 uvicorn main:app --reload
