@@ -60,5 +60,16 @@ Interface moderna construída com **Tailwind CSS**, totalmente adaptada para uso
 
 ### 1. Clonar o repositório
 ```bash
-git clone [https://github.com/SEU_USUARIO/medidec-app.git](https://github.com/SEU_USUARIO/medidec-app.git)
+### 1. Clonar e Instalar
+```bash
+# Clone o repositório
+git clone [https://github.com/beckmorr/medidec-app.git](https://github.com/beckmorr/medidec-app.git)
+
+# Entre na pasta
 cd medidec-app
+
+# Instale as dependências
+npm install
+
+# Inicie o projeto
+npm run dev
