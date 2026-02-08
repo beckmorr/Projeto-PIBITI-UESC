@@ -69,7 +69,7 @@ export const About = () => {
         </p>
       </div>
 
-      <div className="relative w-full overflow-hidden bg-transparent py-12 border-y border-slate-200">
+      <div className="relative w-full overflow-hidden bg-transparent py-12 border-y border-slate-200 [mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent)]">
         <div className="flex w-max animate-scroll">
           {[...features, ...features].map((item, index) => (
             <div

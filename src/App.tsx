@@ -10,7 +10,7 @@ function App() {
     <BrowserRouter>
       <div className="min-h-screen bg-white">
         <Navbar />
-        <main className="max-w-7xl mx-auto">
+        <main className="w-full flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/predicao" element={<Prediction />} />
