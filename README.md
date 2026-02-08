@@ -18,9 +18,10 @@ O **MediDec** é uma aplicação web que utiliza Inteligência Artificial para a
 ## Funcionalidades Principais
 
 ### 1. Predição de Risco com IA
-Utiliza modelos de Machine Learning (XGBoost/Random Forest) para calcular a probabilidade de:
+Utiliza modelos de Machine Learning para calcular a probabilidade de:
 - **Mortalidade Hospitalar**
 - **Necessidade de Ventilação Mecânica**
+- ...
 
 ### 2. Simulação de Conduta (Modo Interativo)
 Uma aba exclusiva de **"Simular Conduta"** onde o médico pode:
@@ -30,7 +31,7 @@ Uma aba exclusiva de **"Simular Conduta"** onde o médico pode:
 
 ### 3. Explicabilidade (XAI)
 Não basta dizer o risco, o sistema explica o **porquê**.
-- Integração com **SHAP Values** para mostrar quais variáveis (ex: Idade, Lactato) mais contribuíram para a decisão do modelo.
+- Integração com **SHAP Values** para mostrar quais variáveis mais contribuíram para a decisão do modelo.
 
 ### 4. Design Responsivo
 Interface moderna construída com **Tailwind CSS**, totalmente adaptada para uso em computadores, tablets e smartphones (Mobile-First).
@@ -71,3 +72,6 @@ npm install
 
 # Inicie o projeto
 npm run dev
+```
+
+O terminal exibirá um link (geralmente http://localhost:5173). Segure a tecla Ctrl e clique no link para abrir o projeto automaticamente no seu navegador.
