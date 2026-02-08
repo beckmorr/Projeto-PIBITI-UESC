@@ -1,4 +1,4 @@
-# MediDec - Clinical Decision Support System
+# MediDec - Sistema de Suporte à Decisão Médica
 
 ![Project Status](https://img.shields.io/badge/status-em_desenvolvimento-orange?style=for-the-badge)
 
