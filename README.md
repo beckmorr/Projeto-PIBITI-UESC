@@ -23,7 +23,7 @@ O **MediDec** é uma aplicação web completa que utiliza modelos de Machine Lea
 Utiliza modelos XGBoost otimizados (formato .ubj) para calcular a probabilidade de:
 - Mortalidade Hospitalar
 - Necessidade de Ventilação Mecânica
-- Tempo de Permanência (LOS)
+- ...
 
 ### 2. Explicabilidade (XAI) em Tempo Real
 O sistema oferece transparência nas decisões do modelo. Para cada predição, são gerados:
