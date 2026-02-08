@@ -8,33 +8,43 @@ Tecnologias utilizadas:
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
+![XGBoost](https://img.shields.io/badge/XGBoost-FL-red?style=for-the-badge)
 
-> **Sistema de Apoio à Decisão Clínica (CDSS) para Unidades de Terapia Intensiva.**
+> **Sistema de Apoio à Decisão Clínica (CDSS) com Inteligência Artificial Explicável (XAI) para Unidades de Terapia Intensiva.**
 
-O **MediDec** é uma aplicação web que utiliza Inteligência Artificial para auxiliar profissionais de saúde na predição de desfechos clínicos. O sistema oferece estimativas de risco baseadas em dados reais e permite a simulação de cenários terapêuticos ("What-if analysis").
+O **MediDec** é uma aplicação web completa que utiliza modelos de Machine Learning (XGBoost) para auxiliar profissionais de saúde na predição de desfechos clínicos. O sistema vai além da predição, oferecendo Explicabilidade em Tempo Real (SHAP Values) e simulação de cenários terapêuticos ("What-if analysis").
 
 ---
 
 ## Funcionalidades Principais
 
-### 1. Predição de Risco com IA
-Utiliza modelos de Machine Learning para calcular a probabilidade de:
-- **Mortalidade Hospitalar**
-- **Necessidade de Ventilação Mecânica**
-- ...
+### 1. Predição de Risco com IA Avançada
+Utiliza modelos XGBoost otimizados (formato .ubj) para calcular a probabilidade de:
+- Mortalidade Hospitalar
+- Necessidade de Ventilação Mecânica
+- Tempo de Permanência (LOS)
 
-### 2. Simulação de Conduta (Modo Interativo)
+### 2. Explicabilidade (XAI) em Tempo Real
+O sistema oferece transparência nas decisões do modelo. Para cada predição, são gerados:
+- **Gráficos SHAP (Waterfall & Bar Plot):** Gerados dinamicamente no backend, mostrando exatamente quais variáveis contribuíram para aumentar ou diminuir o risco daquele paciente específico.
+- **Top 5 Fatores de Impacto:** Lista textual das variáveis mais influentes no desfecho.
+
+### 3. Simulação de Conduta (Modo Interativo)
 Uma aba exclusiva de **"Simular Conduta"** onde o médico pode:
-- Alterar variáveis clínicas (ex: dias de nutrição, uso de drogas vasoativas).
-- Visualizar instantaneamente como a mudança na conduta impacta o risco do paciente.
-- Comparar o cenário **Original** vs. **Simulado**.
+- Alterar variáveis clínicas dinâmicas (ex: dias de nutrição, balanço hídrico, uso de drogas vasoativas).
+- Receber uma nova predição e novos gráficos explicativos instantaneamente.
+- Comparar o cenário **Original** vs. **Simulado** para apoiar a tomada de decisão.
 
-### 3. Explicabilidade (XAI)
-Não basta dizer o risco, o sistema explica o **porquê**.
-- Integração com **SHAP Values** para mostrar quais variáveis mais contribuíram para a decisão do modelo.
+### 4. Visualização de Performance
+Acesso rápido às métricas de validação dos modelos:
+- Curvas ROC e Precision-Recall.
+- Matrizes de Confusão.
+- Curvas de Aprendizado.
 
-### 4. Design Responsivo
-Interface moderna construída com **Tailwind CSS**, totalmente adaptada para uso em computadores, tablets e smartphones (Mobile-First).
+### 5. Arquitetura Robusta
+- **Frontend:** React + Vite + TailwindCSS (Responsivo e Mobile-First).
+- **Backend:** FastAPI (Python) servindo modelos XGBoost e gerando gráficos com Matplotlib/SHAP.
 
 ---
 
@@ -46,10 +56,12 @@ Interface moderna construída com **Tailwind CSS**, totalmente adaptada para uso
 - **Tailwind CSS:** Estilização rápida e responsiva.
 - **Lucide React:** Ícones modernos e leves.
 
-### Backend & Data Science (Em integração)
-- **Python:** Linguagem base para os modelos.
-- **Scikit-Learn / Joblib:** Treinamento e persistência dos modelos (`.pkl`).
-- **FastAPI:** API para comunicação entre o Front e o Modelo.
+### Backend & Data Science
+- **Python:** Linguagem base.
+- **FastAPI:** API REST de alta performance.
+- **XGBoost:** Algoritmo de Gradient Boosting para predições tabulares.
+- **SHAP (SHapley Additive exPlanations):** Biblioteca para interpretabilidade do modelo.
+- **Matplotlib:** Geração de gráficos estáticos no servidor.
 
 ---
 
@@ -57,15 +69,35 @@ Interface moderna construída com **Tailwind CSS**, totalmente adaptada para uso
 
 ### Pré-requisitos
 - Node.js instalado.
-- Python instalado (para o backend).
+- Python 3.8+ instalado.
 
-### 1. Clonar o repositório
+### 1. Configurando o Backend (API)
+
 ```bash
-# Clone o repositório
-git clone [https://github.com/beckmorr/medidec-app.git](https://github.com/beckmorr/medidec-app.git)
+# Entre na pasta da API
+cd api
 
-# Entre na pasta
-cd medidec-app
+# Crie um ambiente virtual (Opcional, mas recomendado)
+python -m venv venv
+
+# Ative o venv:
+# Windows: venv\Scripts\activate
+# Linux/Mac: source venv/bin/activate
+
+# Instale as dependências
+pip install fastapi uvicorn xgboost pandas shap matplotlib scikit-learn
+
+# Inicie o servidor
+uvicorn main:app --reload
+```
+
+A API estará rodando em: http://127.0.0.1:8000
+
+### 2. Configurando o Frontend
+
+```bash
+# Em outro terminal, volte para a raiz do projeto
+cd ..
 
 # Instale as dependências
 npm install
@@ -74,4 +106,10 @@ npm install
 npm run dev
 ```
 
-O terminal exibirá um link (geralmente http://localhost:5173). Segure a tecla Ctrl e clique no link para abrir o projeto automaticamente no seu navegador.
+O terminal exibirá um link (geralmente http://localhost:5173). Segure a tecla Ctrl e clique no link para abrir o projeto.
+
+### Estrutura de Pastas Importantes:
+
+- **api/models/:** Contém os modelos treinados (.ubj).
+- **src/constants/modelsConfig.ts:** Configuração central dos modelos, campos e gráficos.
+- **src/pages/Prediction.tsx:** Componente principal de visualização e simulação.
