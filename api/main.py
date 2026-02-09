@@ -1,8 +1,16 @@
 import xgboost as xgb
 import pandas as pd
+import numpy as np
+import shap
+import matplotlib
+import matplotlib.pyplot as plt
+import io
+import base64
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+matplotlib.use('Agg')
 
 app = FastAPI()
 
@@ -33,6 +41,7 @@ COLUNAS_MORTALIDADE = [
 ]
 
 modelos = {}
+explainers = {}
 
 def carregar_ubj(nome_arquivo):
     path = os.path.join(os.path.dirname(__file__), "models", nome_arquivo + ".ubj")
@@ -51,41 +60,111 @@ def carregar_ubj(nome_arquivo):
         return None
 
 print("-" * 30)
-print("INICIALIZANDO API MEDIDEC...")
+print("INICIALIZANDO API MEDIDEC COM SHAP (EM MEMÓRIA)...")
 modelos["mortalidade"] = carregar_ubj("mortalidade")
 modelos["vm"] = carregar_ubj("ventilacao_mecanica")
+
+for nome, modelo in modelos.items():
+    if modelo:
+        try:
+            explainers[nome] = shap.TreeExplainer(modelo)
+            print(f"Explainer SHAP iniciado para: {nome}")
+        except Exception as e:
+            print(f"Erro ao iniciar Explainer para {nome}: {e}")
+
 print("-" * 30)
+
+def plot_to_base64(plt_obj):
+    buf = io.BytesIO()
+    try:
+        plt_obj.savefig(buf, format="png", bbox_inches='tight', dpi=150)
+        buf.seek(0)
+        img_str = base64.b64encode(buf.read()).decode("utf-8")
+        return f"data:image/png;base64,{img_str}"
+    except Exception as e:
+        print(f"Erro ao converter plot: {e}")
+        return ""
+    finally:
+        plt_obj.close() 
+
+def gerar_analise_shap(modelo_id, df_input):
+    if modelo_id not in explainers:
+        return None
+
+    explainer = explainers[modelo_id]
+    shap_values_obj = explainer(df_input)
+    
+    values = shap_values_obj.values[0]
+    data = shap_values_obj.data[0]
+    feature_names = df_input.columns.tolist()
+    
+    impactos = []
+    for nome, valor_shap, valor_real in zip(feature_names, values, data):
+        impactos.append({
+            "variavel": nome,
+            "contrib": float(valor_shap),
+            "valor_original": float(valor_real),
+            "magnitude": abs(valor_shap)
+        })
+    
+    top_5 = sorted(impactos, key=lambda x: x["magnitude"], reverse=True)[:5]
+    
+    top_5_final = []
+    for item in top_5:
+        top_5_final.append({
+            "variavel": item["variavel"],
+            "contrib": round(item["contrib"], 3),
+            "valor_real": item["valor_original"]
+        })
+
+    plt.figure()
+    shap.plots.waterfall(shap_values_obj[0], show=False, max_display=12)
+    waterfall_b64 = plot_to_base64(plt)
+    
+    plt.figure()
+    shap.plots.decision(
+        base_value=shap_values_obj.base_values[0],
+        shap_values=shap_values_obj.values[0],
+        feature_names=feature_names,
+        show=False,
+        link='logit'
+    )
+    decision_plot_b64 = plot_to_base64(plt)
+    
+    return {
+        "top_features": top_5_final,
+        "plot_waterfall": waterfall_b64,
+        "plot_bar": decision_plot_b64 
+    }
 
 @app.post("/predict/{modelo_id}")
 def predict(modelo_id: str, dados: dict):
+    
     if modelo_id not in modelos or modelos[modelo_id] is None:
         raise HTTPException(status_code=404, detail=f"Modelo '{modelo_id}' nao disponivel.")
 
     try:
         df_input = pd.DataFrame([dados])
-        
         df_ordenado = df_input.reindex(columns=COLUNAS_MORTALIDADE, fill_value=0)
-        
         df_ordenado = df_ordenado.apply(pd.to_numeric, errors='coerce').fillna(0)
 
         dmatrix = xgb.DMatrix(df_ordenado.values)
-
         booster = modelos[modelo_id]
         
         prob_evento = float(booster.predict(dmatrix, validate_features=False)[0])
-        
         prob_alta = 1.0 - prob_evento
+
+        shap_data = gerar_analise_shap(modelo_id, df_ordenado)
 
         return {
             "modelo": modelo_id,
-            
-            "probabilidade": prob_evento, 
-            
+            "probabilidade": prob_evento,
             "probabilidade_obito": prob_evento,
             "probabilidade_alta": prob_alta,
-            
             "percentual_obito": round(prob_evento * 100, 1),
-            "percentual_alta": round(prob_alta * 100, 1)
+            "percentual_alta": round(prob_alta * 100, 1),
+            
+            "shap_analysis": shap_data 
         }
 
     except Exception as e:

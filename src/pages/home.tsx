@@ -116,7 +116,7 @@ export const Home = () => {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/predict/${selecionado}`,
+        `http://127.0.0.1:8000/predict/${selecionado}?tipo_analise=original`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -132,7 +132,7 @@ export const Home = () => {
 
       navigate("/predicao", {
         state: {
-          probabilidade: resultado.probabilidade,
+          ...resultado,
           modeloId: selecionado,
           dadosPaciente: formData,
         },

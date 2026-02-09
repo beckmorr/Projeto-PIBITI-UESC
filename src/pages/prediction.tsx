@@ -3,6 +3,8 @@ import {
   Activity,
   BarChart2,
   Save,
+  Users,
+  Dices,
   RefreshCw,
   AlertCircle,
   ArrowUpRight,
@@ -19,7 +21,6 @@ import {
 import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
 
-// Tipagem dos dados SHAP
 interface ShapData {
   top_features: Array<{
     variavel: string;
@@ -52,21 +53,17 @@ export const Prediction = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Estado inicial vindo da Home (Sempre Original)
   const initialState = location.state as PredictionState | null;
 
-  // Estados para armazenar dados da Original vs Conduta
   const [originalData] = useState<PredictionState | null>(initialState);
   const [condutaData, setCondutaData] = useState<PredictionState | null>(
     initialState,
   );
 
-  // Estado dos inputs do paciente
   const [patientData, setPatientData] = useState<Record<string, any>>(
     initialState?.dadosPaciente || {},
   );
 
-  // Controle de Abas e Modais
   const [activeTab, setActiveTab] = useState<"original" | "conduta">(
     "original",
   );
@@ -75,17 +72,14 @@ export const Prediction = () => {
   >(null);
   const [isSimulating, setIsSimulating] = useState(false);
 
-  // Redireciona se não tiver dados
   if (!initialState) return <Navigate to="/" replace />;
   const modelo = MODELOS_CONFIG[initialState.modeloId];
   if (!modelo) return <Navigate to="/" replace />;
 
   // --- LÓGICA DE EXIBIÇÃO ---
-  // Se a aba for 'original', usa dados originais. Se for 'conduta', usa dados da simulação.
   const currentData = activeTab === "original" ? originalData : condutaData;
   const isConduta = activeTab === "conduta";
 
-  // Cálculos de exibição
   const probRaw = currentData?.percentual_obito
     ? currentData.percentual_obito / 100
     : (currentData?.probabilidade ?? 0);
@@ -101,7 +95,6 @@ export const Prediction = () => {
   const handleSimulation = async () => {
     setIsSimulating(true);
     try {
-      // Chama API indicando que é CONDUTA
       const response = await fetch(
         `http://127.0.0.1:8000/predict/${modelo.id}?tipo_analise=conduta`,
         {
@@ -115,10 +108,9 @@ export const Prediction = () => {
 
       const newData = await response.json();
 
-      // Atualiza apenas os dados da conduta
       setCondutaData({
         ...newData,
-        dadosPaciente: patientData, // Mantém os inputs atuais
+        dadosPaciente: patientData,
         modeloId: modelo.id,
       });
     } catch (error) {
@@ -129,7 +121,6 @@ export const Prediction = () => {
     }
   };
 
-  // Configuração da Tabela
   const diasReais = modelo.diasDeAcompanhamento;
   const diasExtras = modelo.diasAdicionais;
   const totalDiasExibicao = isConduta ? diasReais + diasExtras : diasReais;
@@ -145,17 +136,18 @@ export const Prediction = () => {
     activeImages = modelo.graficos?.performance || [];
   } else if (activeChartModal === "shap") {
     const shapAnalysis = currentData?.shap_analysis;
+
     if (shapAnalysis) {
       activeImages = [
         {
-          title: "Gráfico Cascata (Waterfall)",
+          title: "Contribuição Individual (Waterfall)",
           src: shapAnalysis.plot_waterfall,
           desc: "Explica como cada variável somou ou subtraiu para chegar no resultado final deste paciente.",
         },
         {
-          title: "Impacto Absoluto (Bar Plot)",
+          title: "Trajetória da Decisão (Decision Plot)",
           src: shapAnalysis.plot_bar,
-          desc: "Ranking das variáveis que mais influenciaram esta decisão específica.",
+          desc: "Visualiza o caminho cumulativo das variáveis, mostrando como cada fator desviou o risco da média até a predição final.",
         },
       ];
     } else {
@@ -417,6 +409,13 @@ export const Prediction = () => {
                     </button>
                     <button className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors">
                       <RefreshCw className="w-3 h-3" /> Média
+                    </button>
+                    {/* BOTÕES NOVOS COM ÍCONES SEMÂNTICOS */}
+                    <button className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors">
+                      <Users className="w-3 h-3" /> Similares
+                    </button>
+                    <button className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors">
+                      <Dices className="w-3 h-3" /> DICE
                     </button>
                   </div>
                 )}
