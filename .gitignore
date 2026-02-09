@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+api/__pycache__/
+*.pyc
+src/assets/shap/original/*.png
+src/assets/shap/conduta/*.png

@@ -17,6 +17,7 @@ export interface Campo {
   label: string;
   type: "number" | "select";
   categoria: "unico" | "diario";
+  editavel?: boolean;
 }
 
 export interface ModeloConfig {
@@ -84,18 +85,21 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
         label: "ID do Paciente",
         type: "number",
         categoria: "unico",
+        editavel: false,
       },
       {
         id: "gender",
         label: "Gênero",
         type: "number",
         categoria: "unico",
+        editavel: false,
       },
       {
         id: "age_group",
         label: "Faixa Etária",
         type: "number",
         categoria: "unico",
+        editavel: false,
       },
       {
         id: "IMC_range",

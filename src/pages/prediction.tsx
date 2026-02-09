@@ -436,7 +436,7 @@ export const Prediction = () => {
                         </label>
                         <input
                           type="number"
-                          disabled={true}
+                          disabled={!isConduta || campo.editavel === false}
                           placeholder="-"
                           value={patientData[campo.id] || ""}
                           onChange={(e) =>
@@ -445,7 +445,7 @@ export const Prediction = () => {
                               [campo.id]: e.target.value,
                             })
                           }
-                          className="w-full bg-transparent font-bold text-sm md:text-base text-slate-700 white:text-slate-200 outline-none border-b border-transparent"
+                          className="w-full bg-transparent font-bold text-sm md:text-base text-slate-500 white:text-slate-800 outline-none border-b border-transparent"
                         />
                       </div>
                     ))}
