@@ -8,7 +8,7 @@ CAMINHO_ARQUIVO = "api/models/mortalidade.pkl"
 
 def raio_x_modelo():
     print("="*50)
-    print(f"INICIANDO RAIO-X DO MODELO: {CAMINHO_ARQUIVO}")
+    print(f"INICIANDO DEBUG DO MODELO: {CAMINHO_ARQUIVO}")
     print("="*50)
 
     if not os.path.exists(CAMINHO_ARQUIVO):

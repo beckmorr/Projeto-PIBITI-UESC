@@ -59,8 +59,8 @@ def carregar_ubj(nome_arquivo):
         print(f"ERRO ao ler UBJ {nome_arquivo}: {e}")
         return None
 
-print("-" * 30)
-print("INICIALIZANDO API MEDIDEC COM SHAP (EM MEMÓRIA)...")
+print("-" * 50)
+print("INICIALIZANDO API MEDIDEC")
 modelos["mortalidade"] = carregar_ubj("mortalidade")
 modelos["vm"] = carregar_ubj("ventilacao_mecanica")
 
@@ -72,7 +72,7 @@ for nome, modelo in modelos.items():
         except Exception as e:
             print(f"Erro ao iniciar Explainer para {nome}: {e}")
 
-print("-" * 30)
+print("-" * 50)
 
 def plot_to_base64(plt_obj):
     buf = io.BytesIO()

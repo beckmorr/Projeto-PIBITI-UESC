@@ -18,6 +18,12 @@ export const Navbar = () => {
             Predição
           </Link>
           <Link
+            to="/visualizar"
+            className="text-sm font-medium text-slate-600 hover:text-blue-600 transition"
+          >
+            Visualizar
+          </Link>
+          <Link
             to="/sobre"
             className="text-sm font-medium text-slate-600 hover:text-blue-600 transition"
           >

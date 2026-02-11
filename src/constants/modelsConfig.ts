@@ -3,8 +3,6 @@ import mortFeature from "../assets/desempenho_modelos/mortalidade/perf_feature_i
 import mortLearning from "../assets/desempenho_modelos/mortalidade/perf_learning.png";
 import mortPR from "../assets/desempenho_modelos/mortalidade/perf_pr.png";
 import mortROC from "../assets/desempenho_modelos/mortalidade/perf_roc.png";
-import mortSHAPb from "../assets/shap/original/shap_bar.png";
-import mortSHAPw from "../assets/shap/original/shap_bar.png";
 
 export interface GraficoConfig {
   title: string;
@@ -66,18 +64,7 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
           desc: "Fatores que mais impactaram a decisão.",
         },
       ],
-      shap: [
-        {
-          title: "Gráfico de Barras SHAP",
-          src: mortSHAPb,
-          desc: "Fatores que mais impactaram a decisão.",
-        },
-        {
-          title: "Gráfico de Cascatas SHAP",
-          src: mortSHAPw,
-          desc: "Fatores que mais impactaram a decisão.",
-        },
-      ],
+      shap: [],
     },
     campos: [
       {

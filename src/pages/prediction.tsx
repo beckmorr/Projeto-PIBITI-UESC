@@ -287,11 +287,12 @@ export const Prediction = () => {
               </p>
             </div>
 
-            {/* CARD 2: PERFORMANCE (Sempre estático) */}
+            {/* CARD 2: PERFORMANCE*/}
             <div className="bg-white white:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 white:border-slate-800 p-6 transition-colors">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-slate-800 white:text-white font-bold flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-slate-400" /> Performance
+                  <Activity className="w-4 h-4 text-slate-400" /> Performance do
+                  Modelo
                 </h3>
                 <button
                   onClick={() => setActiveChartModal("performance")}
@@ -320,7 +321,7 @@ export const Prediction = () => {
               </div>
             </div>
 
-            {/* CARD 3: SHAP (Fatores de Impacto) */}
+            {/* CARD 3: SHAP*/}
             <div className="bg-white white:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 white:border-slate-800 p-6 transition-colors">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-slate-800 white:text-white font-bold flex items-center gap-2">
@@ -386,7 +387,7 @@ export const Prediction = () => {
             </div>
           </div>
 
-          {/* DIREITA: INPUTS RESPONSIVOS */}
+          {/* DIREITA: INPUTS*/}
           <div className="lg:col-span-8 h-auto lg:h-[calc(100vh-10rem)] min-h-[500px]">
             <div
               className={`bg-white white:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 white:border-slate-800 p-4 md:p-6 h-full flex flex-col transition-all ${isConduta ? "ring-2 ring-blue-100 white:ring-blue-900/30" : ""}`}
@@ -410,7 +411,6 @@ export const Prediction = () => {
                     <button className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors">
                       <RefreshCw className="w-3 h-3" /> Média
                     </button>
-                    {/* BOTÕES NOVOS COM ÍCONES SEMÂNTICOS */}
                     <button className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors">
                       <Users className="w-3 h-3" /> Similares
                     </button>
@@ -421,9 +421,7 @@ export const Prediction = () => {
                 )}
               </div>
 
-              {/* Tabela com Scroll */}
               <div className="flex-1 overflow-y-auto overflow-x-auto pr-0 md:pr-2 min-h-0 border-b border-slate-50 white:border-slate-800 custom-scrollbar relative">
-                {/* Campos Únicos */}
                 {camposUnicos.length > 0 && (
                   <div className="grid grid-cols-2 gap-3 mb-6 border-b border-slate-100 white:border-slate-800 pb-6">
                     {camposUnicos.map((campo) => (
@@ -451,7 +449,6 @@ export const Prediction = () => {
                     ))}
                   </div>
                 )}
-                {/* Tabela Diária */}
                 {camposDiarios.length > 0 && (
                   <div className="inline-block min-w-full align-middle">
                     <table className="min-w-full border-collapse">
