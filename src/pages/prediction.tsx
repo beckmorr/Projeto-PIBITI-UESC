@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Activity,
   BarChart2,
@@ -18,28 +18,9 @@ import {
   PieChart,
   X,
 } from "lucide-react";
-import { useLocation, useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
-
-interface ShapData {
-  top_features: Array<{
-    variavel: string;
-    contrib: number;
-    valor_real: number;
-  }>;
-  plot_waterfall: string;
-  plot_bar: string;
-}
-
-interface PredictionState {
-  probabilidade?: number;
-  percentual_obito?: number;
-  percentual_alta?: number;
-  modeloId: string;
-  dadosPaciente: any;
-  shap_analysis?: ShapData;
-  tipo_analise?: "original" | "conduta";
-}
+import { usePrediction } from "../contexts/PredictionContext";
 
 // MOCKS ESTÁTICOS
 const MOCK_METRICS = {
@@ -50,34 +31,42 @@ const MOCK_METRICS = {
 };
 
 export const Prediction = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-
-  const initialState = location.state as PredictionState | null;
-
-  const [originalData] = useState<PredictionState | null>(initialState);
-  const [condutaData, setCondutaData] = useState<PredictionState | null>(
-    initialState,
-  );
+  const {
+    modeloId,
+    dadosPaciente: contextDadosPaciente,
+    originalData: contextOriginalData,
+    condutaData: contextCondutaData,
+    setCondutaData: setContextCondutaData,
+    isModeloCarregado,
+  } = usePrediction();
 
   const [patientData, setPatientData] = useState<Record<string, any>>(
-    initialState?.dadosPaciente || {},
+    contextDadosPaciente || {},
   );
 
   const [activeTab, setActiveTab] = useState<"original" | "conduta">(
     "original",
   );
   const [activeChartModal, setActiveChartModal] = useState<
-    "performance" | "shap" | null
+    "performance" | null
   >(null);
   const [isSimulating, setIsSimulating] = useState(false);
 
-  if (!initialState) return <Navigate to="/" replace />;
-  const modelo = MODELOS_CONFIG[initialState.modeloId];
+  // Sincronizar patientData com contexto
+  useEffect(() => {
+    if (contextDadosPaciente && Object.keys(contextDadosPaciente).length > 0) {
+      setPatientData(contextDadosPaciente);
+    }
+  }, [contextDadosPaciente]);
+
+  if (!isModeloCarregado || !modeloId) return <Navigate to="/" replace />;
+  const modelo = MODELOS_CONFIG[modeloId];
   if (!modelo) return <Navigate to="/" replace />;
 
   // --- LÓGICA DE EXIBIÇÃO ---
-  const currentData = activeTab === "original" ? originalData : condutaData;
+  const currentData =
+    activeTab === "original" ? contextOriginalData : contextCondutaData;
   const isConduta = activeTab === "conduta";
 
   const probRaw = currentData?.percentual_obito
@@ -90,6 +79,15 @@ export const Prediction = () => {
   const displayObito = Number(percObito).toFixed(1);
   const displayAlta = Number(percAlta).toFixed(1);
   const isAltaMaior = Number(percAlta) >= Number(percObito);
+
+  // --- VARIÁVEIS PRINCIPAIS (devem estar aqui para as funções funcionarem) ---
+  const diasReais = modelo.diasDeAcompanhamento;
+  const diasExtras = modelo.diasAdicionais;
+  const totalDiasExibicao = isConduta ? diasReais + diasExtras : diasReais;
+  const arrayDias = Array.from({ length: totalDiasExibicao }, (_, i) => i + 1);
+
+  const camposUnicos = modelo.campos.filter((c) => c.categoria === "unico");
+  const camposDiarios = modelo.campos.filter((c) => c.categoria === "diario");
 
   // --- FUNÇÃO DE SIMULAÇÃO ---
   const handleSimulation = async () => {
@@ -108,7 +106,7 @@ export const Prediction = () => {
 
       const newData = await response.json();
 
-      setCondutaData({
+      setContextCondutaData({
         ...newData,
         dadosPaciente: patientData,
         modeloId: modelo.id,
@@ -121,38 +119,63 @@ export const Prediction = () => {
     }
   };
 
-  const diasReais = modelo.diasDeAcompanhamento;
-  const diasExtras = modelo.diasAdicionais;
-  const totalDiasExibicao = isConduta ? diasReais + diasExtras : diasReais;
-  const arrayDias = Array.from({ length: totalDiasExibicao }, (_, i) => i + 1);
+  // --- FUNÇÃO REPETIR: Copia o último dia real para os dias adicionais ---
+  const handleRepetirUltimoDia = () => {
+    if (diasExtras === 0) return;
 
-  const camposUnicos = modelo.campos.filter((c) => c.categoria === "unico");
-  const camposDiarios = modelo.campos.filter((c) => c.categoria === "diario");
+    const novosDados = { ...patientData };
+
+    camposDiarios.forEach((campo) => {
+      const ultimoDiaReal = `${campo.id}_dia_${diasReais}`;
+      const valorUltimoDia = patientData[ultimoDiaReal];
+
+      if (valorUltimoDia !== undefined && valorUltimoDia !== "") {
+        for (let dia = diasReais + 1; dia <= diasReais + diasExtras; dia++) {
+          novosDados[`${campo.id}_dia_${dia}`] = valorUltimoDia;
+        }
+      }
+    });
+
+    setPatientData(novosDados);
+  };
+
+  // --- FUNÇÃO MÉDIA: Calcula média dos dias reais e preenche os adicionais ---
+  const handlePreencherMedia = () => {
+    if (diasExtras === 0) return;
+
+    const novosDados = { ...patientData };
+
+    camposDiarios.forEach((campo) => {
+      const valoresDiarios: number[] = [];
+
+      // Coletar valores dos dias reais
+      for (let dia = 1; dia <= diasReais; dia++) {
+        const chaveDia = `${campo.id}_dia_${dia}`;
+        const valor = patientData[chaveDia];
+        if (valor !== undefined && valor !== "" && !isNaN(Number(valor))) {
+          valoresDiarios.push(Number(valor));
+        }
+      }
+
+      // Calcular média
+      if (valoresDiarios.length > 0) {
+        const media = valoresDiarios.reduce((a, b) => a + b, 0) / valoresDiarios.length;
+
+        // Preencher dias adicionais com a média
+        for (let dia = diasReais + 1; dia <= diasReais + diasExtras; dia++) {
+          novosDados[`${campo.id}_dia_${dia}`] = media;
+        }
+      }
+    });
+
+    setPatientData(novosDados);
+  };
 
   // --- IMAGENS DO MODAL ---
   let activeImages: Array<{ title: string; src: string; desc: string }> = [];
 
   if (activeChartModal === "performance") {
     activeImages = modelo.graficos?.performance || [];
-  } else if (activeChartModal === "shap") {
-    const shapAnalysis = currentData?.shap_analysis;
-
-    if (shapAnalysis) {
-      activeImages = [
-        {
-          title: "Contribuição Individual (Waterfall)",
-          src: shapAnalysis.plot_waterfall,
-          desc: "Explica como cada variável somou ou subtraiu para chegar no resultado final deste paciente.",
-        },
-        {
-          title: "Trajetória da Decisão (Decision Plot)",
-          src: shapAnalysis.plot_bar,
-          desc: "Visualiza o caminho cumulativo das variáveis, mostrando como cada fator desviou o risco da média até a predição final.",
-        },
-      ];
-    } else {
-      activeImages = modelo.graficos?.shap || [];
-    }
   }
 
   // --- RENDERIZADORES DE CARDS ---
@@ -257,138 +280,8 @@ export const Prediction = () => {
 
       <div className="container mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* ESQUERDA: RESULTADOS */}
-          <div className="lg:col-span-4 space-y-6">
-            {/* CARD 1: PREDIÇÃO */}
-            <div className="bg-white white:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 white:border-slate-800 p-6 transition-colors">
-              <h3 className="text-slate-500 white:text-slate-400 text-xs font-bold uppercase tracking-widest mb-6 text-center">
-                {activeTab === "original"
-                  ? "Predição Original"
-                  : "Simulação de Conduta"}
-              </h3>
-              <div className="flex flex-col gap-3">
-                {isAltaMaior ? (
-                  <>
-                    {renderCardAlta(true)}
-                    {renderCardObito(false)}
-                  </>
-                ) : (
-                  <>
-                    {renderCardObito(true)}
-                    {renderCardAlta(false)}
-                  </>
-                )}
-              </div>
-              <p className="text-xs text-slate-400 mt-6 text-center">
-                Modelo:{" "}
-                <span className="font-semibold text-slate-600">
-                  {modelo.nome}
-                </span>
-              </p>
-            </div>
-
-            {/* CARD 2: PERFORMANCE*/}
-            <div className="bg-white white:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 white:border-slate-800 p-6 transition-colors">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-slate-800 white:text-white font-bold flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-slate-400" /> Performance do
-                  Modelo
-                </h3>
-                <button
-                  onClick={() => setActiveChartModal("performance")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 white:bg-slate-800 text-slate-600 white:text-slate-300 text-xs font-bold rounded-lg hover:bg-slate-100 white:hover:bg-slate-700 transition-colors"
-                >
-                  <PieChart className="w-3 h-3" /> Gráficos
-                </button>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between py-2 border-b border-slate-50 white:border-slate-800">
-                  <span className="text-slate-500 white:text-slate-400">
-                    Acurácia (Teste)
-                  </span>
-                  <span className="font-mono font-bold text-slate-700 white:text-slate-200">
-                    {MOCK_METRICS.acuraciaTeste}
-                  </span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-slate-500 white:text-slate-400">
-                    AUC (Teste)
-                  </span>
-                  <span className="font-mono font-bold text-slate-700 white:text-slate-200">
-                    {MOCK_METRICS.aucTeste}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* CARD 3: SHAP*/}
-            <div className="bg-white white:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 white:border-slate-800 p-6 transition-colors">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-slate-800 white:text-white font-bold flex items-center gap-2">
-                  <BarChart2 className="w-4 h-4 text-slate-400" /> Fatores de
-                  Impacto
-                </h3>
-                <button
-                  onClick={() => setActiveChartModal("shap")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 white:bg-slate-800 text-slate-600 white:text-slate-300 text-xs font-bold rounded-lg hover:bg-slate-100 white:hover:bg-slate-700 transition-colors"
-                >
-                  <PieChart className="w-3 h-3" /> Gráficos
-                </button>
-              </div>
-              <div className="overflow-hidden rounded-xl border border-slate-100 white:border-slate-800">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 white:bg-slate-800 text-xs uppercase text-slate-500 white:text-slate-400">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Variável</th>
-                      <th className="px-3 py-2 text-right">Contribuição</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50 white:divide-slate-800">
-                    {currentData?.shap_analysis ? (
-                      currentData.shap_analysis.top_features.map(
-                        (item, idx) => (
-                          <tr
-                            key={idx}
-                            className="hover:bg-slate-50 white:hover:bg-slate-800/50"
-                          >
-                            <td
-                              className="px-3 py-2 text-slate-700 white:text-slate-300 font-medium truncate max-w-[150px]"
-                              title={item.variavel}
-                            >
-                              {item.variavel}
-                            </td>
-                            <td
-                              className={`px-3 py-2 text-right flex items-center justify-end gap-1 font-bold ${item.contrib > 0 ? "text-emerald-600" : "text-red-500"}`}
-                            >
-                              {item.contrib > 0 ? "+" : ""}
-                              {item.contrib}
-                              {item.contrib > 0 ? (
-                                <ArrowUpRight className="w-3 h-3" />
-                              ) : (
-                                <ArrowDownRight className="w-3 h-3" />
-                              )}
-                            </td>
-                          </tr>
-                        ),
-                      )
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={2}
-                          className="px-3 py-4 text-center text-slate-400 text-xs"
-                        >
-                          Sem dados SHAP disponíveis.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
           {/* DIREITA: INPUTS*/}
-          <div className="lg:col-span-8 h-auto lg:h-[calc(100vh-10rem)] min-h-[500px]">
+          <div className="lg:col-span-12 h-auto lg:h-[calc(100vh-10rem)] min-h-[500px]">
             <div
               className={`bg-white white:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 white:border-slate-800 p-4 md:p-6 h-full flex flex-col transition-all ${isConduta ? "ring-2 ring-blue-100 white:ring-blue-900/30" : ""}`}
             >
@@ -405,10 +298,16 @@ export const Prediction = () => {
                 </div>
                 {isConduta && (
                   <div className="flex gap-2 w-full md:w-auto">
-                    <button className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors">
+                    <button
+                      onClick={handleRepetirUltimoDia}
+                      className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors"
+                    >
                       <Copy className="w-3 h-3" /> Repetir
                     </button>
-                    <button className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors">
+                    <button
+                      onClick={handlePreencherMedia}
+                      className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors"
+                    >
                       <RefreshCw className="w-3 h-3" /> Média
                     </button>
                     <button className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors">
@@ -559,9 +458,7 @@ export const Prediction = () => {
               <div>
                 <h3 className="text-xl font-bold text-slate-800 white:text-white flex items-center gap-2">
                   <PieChart className="w-5 h-5 text-blue-500" />
-                  {activeChartModal === "performance"
-                    ? "Gráficos de Performance"
-                    : "Análise de Fatores (SHAP)"}
+                  Gráficos de Performance
                 </h3>
                 <p className="text-sm text-slate-400">
                   Modelo:{" "}

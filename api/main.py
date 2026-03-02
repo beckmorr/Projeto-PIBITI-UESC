@@ -40,10 +40,15 @@ COLUNAS_MORTALIDADE = [
     'hypo_phosphor', 'max_ast', 'max_alt', 'max_alkaline', 'MV_stay'
 ]
 
+COLUNAS_VM = [
+    'age', 'pao2_fio2_ratio', 'peep', 'fio2', 'tidal_volume', 
+    'respiratory_rate', 'sedation_scale', 'cuff_leak_test', 'secretions_quantity'
+]
+
 modelos = {}
 explainers = {}
 
-def carregar_ubj(nome_arquivo):
+def carregar_modelo(nome_arquivo):
     path = os.path.join(os.path.dirname(__file__), "models", nome_arquivo + ".ubj")
     
     if not os.path.exists(path):
@@ -61,8 +66,8 @@ def carregar_ubj(nome_arquivo):
 
 print("-" * 50)
 print("INICIALIZANDO API MEDIDEC")
-modelos["mortalidade"] = carregar_ubj("mortalidade")
-modelos["vm"] = carregar_ubj("ventilacao_mecanica")
+modelos["mortalidade"] = carregar_modelo("mortalidade")
+modelos["vm"] = carregar_modelo("ventilacao_mecanica")
 
 for nome, modelo in modelos.items():
     if modelo:
@@ -134,7 +139,7 @@ def gerar_analise_shap(modelo_id, df_input):
     return {
         "top_features": top_5_final,
         "plot_waterfall": waterfall_b64,
-        "plot_bar": decision_plot_b64 
+        "plot_bar": decision_plot_b64
     }
 
 @app.post("/predict/{modelo_id}")

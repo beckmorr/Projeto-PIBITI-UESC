@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import sys
 
-CAMINHO_ARQUIVO = "api/models/mortalidade.pkl"
+CAMINHO_ARQUIVO = "api/models/___.pkl"
 
 def raio_x_modelo():
     print("="*50)
@@ -66,16 +66,12 @@ def raio_x_modelo():
             resultado = objeto.predict_proba(df_teste)
             
             print(f"SUCESSO TOTAL! O modelo rodou e retornou: {resultado}")
-            print("\nCONCLUSÃO: O problema não é o arquivo .pkl, é como os dados chegam na API.")
             
         except Exception as e:
             print(f"\nFALHA NA SIMULAÇÃO: {e}")
-            print("Isso significa que mesmo enviando as colunas certas, o modelo quebra.")
-            print("Provavelmente culpa do Pipeline transformando em Array (perda de nomes).")
 
     else:
         print("\nALERTA: Não foi possível extrair os nomes das colunas automaticamente.")
-        print("O modelo pode ter sido salvo sem manter os nomes das features.")
 
 if __name__ == "__main__":
     raio_x_modelo()
