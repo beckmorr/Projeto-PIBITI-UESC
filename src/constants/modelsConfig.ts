@@ -23,6 +23,15 @@ export interface ModeloConfig {
   nome: string;
   diasDeAcompanhamento: number;
   diasAdicionais: number;
+  metadados?: {
+    descricaoBreve: string;
+    metricas: {
+      desempenhoGeral: string;
+      precisao: string;
+      aucr: string;
+      tfp: string;
+    };
+  };
   campos: Campo[];
   graficos?: {
     performance: GraficoConfig[];
@@ -36,6 +45,16 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
     nome: "Mortalidade Hospitalar",
     diasDeAcompanhamento: 5,
     diasAdicionais: 3,
+    metadados: {
+      descricaoBreve:
+        "Modelo para estimar o risco de mortalidade hospitalar com base em variaveis clinicas e evolucao diaria do paciente.",
+      metricas: {
+        desempenhoGeral: "86.7%",
+        precisao: "90.0%",
+        aucr: "0.907",
+        tfp: "13.3%",
+      },
+    },
     graficos: {
       performance: [
         {
@@ -358,6 +377,16 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
     nome: "Ventilação Mecânica",
     diasDeAcompanhamento: 3,
     diasAdicionais: 2,
+    metadados: {
+      descricaoBreve:
+        "Modelo para estimar a necessidade de ventilacao mecanica a partir de indicadores respiratorios e evolucao clinica.",
+      metricas: {
+        desempenhoGeral: "89.7%",
+        precisao: "98.0%",
+        aucr: "0.708",
+        tfp: "16.3%",
+      },
+    },
     graficos: {
       performance: [],
       shap: [],

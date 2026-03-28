@@ -16,7 +16,7 @@ function App() {
           <main className="w-full flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/predicao" element={<Prediction />} />
+              <Route path="/simulador" element={<Prediction mode="conduta" />} />
               <Route path="/sobre" element={<About />} />
               <Route path="/visualizar" element={<Visualizar />} />
             </Routes>

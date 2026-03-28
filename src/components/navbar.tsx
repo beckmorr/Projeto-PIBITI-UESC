@@ -6,28 +6,28 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-x-10">
           <Link
-            to="/"
+            to="/sobre"
             className="text-sm font-medium text-slate-600 hover:text-blue-600 transition"
           >
             Home
           </Link>
           <Link
-            to="/predicao"
+            to="/"
             className="text-sm font-medium text-slate-600 hover:text-blue-600 transition"
           >
-            Predição
+            Preditor
+          </Link>
+          <Link
+            to="/simulador"
+            className="text-sm font-medium text-slate-600 hover:text-blue-600 transition"
+          >
+            Simulador
           </Link>
           <Link
             to="/visualizar"
             className="text-sm font-medium text-slate-600 hover:text-blue-600 transition"
           >
-            Visualizar
-          </Link>
-          <Link
-            to="/sobre"
-            className="text-sm font-medium text-slate-600 hover:text-blue-600 transition"
-          >
-            Sobre a ferramenta
+            Visualizador
           </Link>
         </div>
       </div>

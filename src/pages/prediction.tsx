@@ -30,7 +30,13 @@ const MOCK_METRICS = {
   aucTeste: "0.907",
 };
 
-export const Prediction = () => {
+type PredictionMode = "original" | "conduta";
+
+interface PredictionProps {
+  mode?: PredictionMode;
+}
+
+export const Prediction = ({ mode = "original" }: PredictionProps) => {
   const navigate = useNavigate();
   const {
     modeloId,
@@ -45,9 +51,6 @@ export const Prediction = () => {
     contextDadosPaciente || {},
   );
 
-  const [activeTab, setActiveTab] = useState<"original" | "conduta">(
-    "original",
-  );
   const [activeChartModal, setActiveChartModal] = useState<
     "performance" | null
   >(null);
@@ -66,8 +69,8 @@ export const Prediction = () => {
 
   // --- LÓGICA DE EXIBIÇÃO ---
   const currentData =
-    activeTab === "original" ? contextOriginalData : contextCondutaData;
-  const isConduta = activeTab === "conduta";
+    mode === "original" ? contextOriginalData : contextCondutaData;
+  const isConduta = mode === "conduta";
 
   const probRaw = currentData?.percentual_obito
     ? currentData.percentual_obito / 100
@@ -252,21 +255,16 @@ export const Prediction = () => {
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center">
             <div className="flex space-x-8">
-              <button
-                onClick={() => setActiveTab("original")}
-                className={`py-4 px-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${activeTab === "original" ? "border-emerald-600 text-emerald-700 white:text-emerald-400" : "border-transparent text-slate-500 white:text-slate-400 hover:text-slate-700 white:hover:text-slate-200"}`}
+              <div
+                className={`py-4 px-2 text-sm font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 ${isConduta ? "border-blue-600 text-blue-700 white:text-blue-400" : "border-emerald-600 text-emerald-700 white:text-emerald-400"}`}
               >
-                Original
-              </button>
-              <button
-                onClick={() => setActiveTab("conduta")}
-                className={`py-4 px-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center gap-2 ${activeTab === "conduta" ? "border-blue-600 text-blue-700 white:text-blue-400" : "border-transparent text-slate-500 white:text-slate-400 hover:text-slate-700 white:hover:text-slate-200"}`}
-              >
-                Simular Conduta{" "}
-                <span className="text-[10px] bg-blue-100 white:bg-blue-900 text-blue-700 white:text-blue-200 px-1.5 py-0.5 rounded-full">
-                  Editável
-                </span>
-              </button>
+                {isConduta ? "Simular Conduta" : "Preditor"}
+                {isConduta && (
+                  <span className="text-[10px] bg-blue-100 white:bg-blue-900 text-blue-700 white:text-blue-200 px-1.5 py-0.5 rounded-full">
+                    Editável
+                  </span>
+                )}
+              </div>
             </div>
             <button
               onClick={() => navigate(-1)}
@@ -430,18 +428,13 @@ export const Prediction = () => {
                       ) : (
                         <RefreshCw className="w-4 h-4" />
                       )}
-                      {isSimulating ? "Simulando..." : "Simular"}
+                      {isSimulating ? "Simulando..." : "Submeter à predição"}
                     </button>
                   </>
                 ) : (
                   <div className="flex items-center justify-center gap-2 text-slate-400 text-xs md:text-sm bg-slate-50 p-2 rounded-lg w-full md:w-auto">
                     <AlertCircle className="w-4 h-4" />
-                    <span>
-                      Para testar, mude para{" "}
-                      <strong className="text-slate-600 white:text-slate-300">
-                        Conduta
-                      </strong>
-                    </span>
+                    <span>Para testar, acesse a aba Simulador.</span>
                   </div>
                 )}
               </div>
