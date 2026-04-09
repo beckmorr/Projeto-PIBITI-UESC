@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
   AlertCircle,
-  BarChart2,
   Info,
   ChevronDown,
   CheckCircle,
@@ -14,26 +13,6 @@ import {
 } from "lucide-react";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
 import { usePrediction } from "../contexts/PredictionContext";
-
-interface ShapData {
-  top_features: Array<{
-    variavel: string;
-    contrib: number;
-    valor_real: number;
-  }>;
-  plot_waterfall: string;
-  plot_bar: string;
-}
-
-interface PredictionData {
-  probabilidade?: number;
-  percentual_obito?: number;
-  percentual_alta?: number;
-  modeloId: string;
-  dadosPaciente: any;
-  shap_analysis?: ShapData;
-  tipo_analise?: "original" | "conduta";
-}
 
 const MOCK_METRICS = {
   acuraciaTreino: "90.0%",
@@ -68,9 +47,6 @@ export default function Visualizar() {
       [section]: !prev[section],
     }));
   };
-
-  // Get patient ID for display
-  const pacienteId = originalData?.dadosPaciente?.subject_id || "N/A";
 
   // Calculate percentages
   const probRaw = originalData?.percentual_obito

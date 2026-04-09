@@ -1,34 +1,18 @@
 import { useState, useEffect } from "react";
 import {
-  Activity,
-  BarChart2,
   Save,
   Users,
   Dices,
   RefreshCw,
   AlertCircle,
-  ArrowUpRight,
-  ArrowDownRight,
   Copy,
   ArrowLeft,
-  CheckCircle,
-  AlertTriangle,
-  ThumbsUp,
-  AlertOctagon,
   PieChart,
   X,
 } from "lucide-react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
 import { usePrediction } from "../contexts/PredictionContext";
-
-// MOCKS ESTÁTICOS
-const MOCK_METRICS = {
-  acuraciaTreino: "90.0%",
-  acuraciaTeste: "86.7%",
-  aucTreino: "0.952",
-  aucTeste: "0.907",
-};
 
 type PredictionMode = "original" | "conduta";
 
@@ -41,8 +25,6 @@ export const Prediction = ({ mode = "original" }: PredictionProps) => {
   const {
     modeloId,
     dadosPaciente: contextDadosPaciente,
-    originalData: contextOriginalData,
-    condutaData: contextCondutaData,
     setCondutaData: setContextCondutaData,
     isModeloCarregado,
   } = usePrediction();
@@ -67,21 +49,7 @@ export const Prediction = ({ mode = "original" }: PredictionProps) => {
   const modelo = MODELOS_CONFIG[modeloId];
   if (!modelo) return <Navigate to="/" replace />;
 
-  // --- LÓGICA DE EXIBIÇÃO ---
-  const currentData =
-    mode === "original" ? contextOriginalData : contextCondutaData;
   const isConduta = mode === "conduta";
-
-  const probRaw = currentData?.percentual_obito
-    ? currentData.percentual_obito / 100
-    : (currentData?.probabilidade ?? 0);
-
-  const percObito = currentData?.percentual_obito ?? probRaw * 100;
-  const percAlta = currentData?.percentual_alta ?? 100 - percObito;
-
-  const displayObito = Number(percObito).toFixed(1);
-  const displayAlta = Number(percAlta).toFixed(1);
-  const isAltaMaior = Number(percAlta) >= Number(percObito);
 
   // --- VARIÁVEIS PRINCIPAIS (devem estar aqui para as funções funcionarem) ---
   const diasReais = modelo.diasDeAcompanhamento;
@@ -180,73 +148,6 @@ export const Prediction = ({ mode = "original" }: PredictionProps) => {
   if (activeChartModal === "performance") {
     activeImages = modelo.graficos?.performance || [];
   }
-
-  // --- RENDERIZADORES DE CARDS ---
-  const renderCardAlta = (isMain: boolean) => (
-    <div
-      className={`relative overflow-hidden transition-all duration-500 ease-in-out rounded-xl border-l-4 shadow-sm ${isMain ? "bg-emerald-50 white:bg-emerald-900/20 border-emerald-500 p-6 scale-100 opacity-100 z-10" : "bg-emerald-50/50 white:bg-emerald-900/10 border-emerald-300/50 p-4 scale-[0.98] opacity-60 hover:opacity-80 grayscale-[0.3]"}`}
-    >
-      <div className="flex justify-between items-start relative z-10">
-        <div>
-          <span
-            className={`block font-bold uppercase tracking-wider mb-1 transition-all ${isMain ? "text-emerald-800 white:text-emerald-300 text-xs" : "text-emerald-700/70 white:text-emerald-400/70 text-[10px]"}`}
-          >
-            Probabilidade de Alta
-          </span>
-          <span
-            className={`block font-black text-emerald-600 white:text-emerald-400 leading-none transition-all ${isMain ? "text-5xl mt-2" : "text-2xl mt-1"}`}
-          >
-            {displayAlta}%
-          </span>
-          {isMain && (
-            <p className="text-xs text-emerald-700 white:text-emerald-500 mt-3 font-medium flex items-center gap-1 animate-fade-in">
-              <ThumbsUp className="w-3 h-3" /> Cenário Favorável
-            </p>
-          )}
-        </div>
-        <div
-          className={`rounded-full flex items-center justify-center transition-all ${isMain ? "p-3 bg-emerald-100 white:bg-emerald-800/30" : "p-1.5 bg-emerald-100/50"}`}
-        >
-          <CheckCircle
-            className={`text-emerald-600 white:text-emerald-400 ${isMain ? "w-8 h-8" : "w-5 h-5"}`}
-          />
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderCardObito = (isMain: boolean) => (
-    <div
-      className={`relative overflow-hidden transition-all duration-500 ease-in-out rounded-xl border-l-4 shadow-sm ${isMain ? "bg-red-50 white:bg-red-900/20 border-red-500 p-6 scale-100 opacity-100 z-10" : "bg-red-50/50 white:bg-red-900/10 border-red-300/50 p-4 scale-[0.98] opacity-60 hover:opacity-80 grayscale-[0.3]"}`}
-    >
-      <div className="flex justify-between items-start relative z-10">
-        <div>
-          <span
-            className={`block font-bold uppercase tracking-wider mb-1 transition-all ${isMain ? "text-red-800 white:text-red-300 text-xs" : "text-red-700/70 white:text-red-400/70 text-[10px]"}`}
-          >
-            Risco de Óbito
-          </span>
-          <span
-            className={`block font-black text-red-600 white:text-red-400 leading-none transition-all ${isMain ? "text-5xl mt-2" : "text-2xl mt-1"}`}
-          >
-            {displayObito}%
-          </span>
-          {isMain && (
-            <p className="text-xs text-red-700 white:text-red-500 mt-3 font-medium flex items-center gap-1 animate-fade-in">
-              <AlertOctagon className="w-3 h-3" /> Requer Atenção
-            </p>
-          )}
-        </div>
-        <div
-          className={`rounded-full flex items-center justify-center transition-all ${isMain ? "p-3 bg-red-100 white:bg-red-800/30" : "p-1.5 bg-red-100/50"}`}
-        >
-          <AlertTriangle
-            className={`text-red-600 white:text-red-400 ${isMain ? "w-8 h-8" : "w-5 h-5"}`}
-          />
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-slate-50 white:bg-slate-950 pb-12 transition-colors duration-300">
