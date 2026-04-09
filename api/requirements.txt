@@ -1,3 +1,2 @@
 fastapi
-pandas
-xgboost==1.7.6
+xgboost-cpu==1.7.6

@@ -2,7 +2,6 @@ import base64
 import io
 import os
 
-import pandas as pd
 import xgboost as xgb
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -112,7 +111,7 @@ def plot_to_base64(plt_obj):
         plt_obj.close()
 
 
-def gerar_analise_shap(modelo_id, df_input):
+def gerar_analise_shap(modelo_id, dados_entrada, feature_names):
     if shap is None or plt is None:
         return None
 
@@ -120,11 +119,10 @@ def gerar_analise_shap(modelo_id, df_input):
         return None
 
     explainer = explainers[modelo_id]
-    shap_values_obj = explainer(df_input)
+    shap_values_obj = explainer(dados_entrada)
 
     values = shap_values_obj.values[0]
     data = shap_values_obj.data[0]
-    feature_names = df_input.columns.tolist()
 
     impactos = []
     for nome, valor_shap, valor_real in zip(feature_names, values, data):
@@ -166,24 +164,32 @@ def gerar_analise_shap(modelo_id, df_input):
     }
 
 
+def _to_float(value):
+    if value is None or value == "":
+        return 0.0
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 @app.post("/predict/{modelo_id}")
 def predict(modelo_id: str, dados: dict):
     if modelo_id not in modelos or modelos[modelo_id] is None:
         raise HTTPException(status_code=404, detail=f"Modelo '{modelo_id}' nao disponivel.")
 
     try:
-        df_input = pd.DataFrame([dados])
         colunas_base = COLUNAS_MORTALIDADE if modelo_id == "mortalidade" else COLUNAS_VM
-        df_ordenado = df_input.reindex(columns=colunas_base, fill_value=0)
-        df_ordenado = df_ordenado.apply(pd.to_numeric, errors='coerce').fillna(0)
+        valores_ordenados = [_to_float(dados.get(coluna)) for coluna in colunas_base]
+        matriz_entrada = [valores_ordenados]
 
-        dmatrix = xgb.DMatrix(df_ordenado.values)
+        dmatrix = xgb.DMatrix(matriz_entrada, feature_names=colunas_base)
         booster = modelos[modelo_id]
 
         prob_evento = float(booster.predict(dmatrix, validate_features=False)[0])
         prob_alta = 1.0 - prob_evento
 
-        shap_data = gerar_analise_shap(modelo_id, df_ordenado)
+        shap_data = gerar_analise_shap(modelo_id, matriz_entrada, colunas_base)
 
         return {
             "modelo": modelo_id,
