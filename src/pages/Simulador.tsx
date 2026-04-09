@@ -15,13 +15,13 @@ import { MODELOS_CONFIG } from "../constants/modelsConfig";
 import { usePrediction } from "../contexts/PredictionContext";
 import { buildApiUrl } from "../utils/api";
 
-type PredictionMode = "original" | "conduta";
+type SimuladorMode = "original" | "conduta";
 
-interface PredictionProps {
-  mode?: PredictionMode;
+interface SimuladorProps {
+  mode?: SimuladorMode;
 }
 
-export const Prediction = ({ mode = "original" }: PredictionProps) => {
+export const Simulador = ({ mode = "original" }: SimuladorProps) => {
   const navigate = useNavigate();
   const {
     modeloId,
@@ -46,9 +46,9 @@ export const Prediction = ({ mode = "original" }: PredictionProps) => {
     }
   }, [contextDadosPaciente]);
 
-  if (!isModeloCarregado || !modeloId) return <Navigate to="/" replace />;
+  if (!isModeloCarregado || !modeloId) return <Navigate to="/preditor" replace />;
   const modelo = MODELOS_CONFIG[modeloId];
-  if (!modelo) return <Navigate to="/" replace />;
+  if (!modelo) return <Navigate to="/preditor" replace />;
 
   const isConduta = mode === "conduta";
 

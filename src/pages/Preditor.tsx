@@ -6,7 +6,7 @@ import { buildApiUrl } from "../utils/api";
 import Papa from "papaparse";
 import { usePrediction } from "../contexts/PredictionContext";
 
-export const Home = () => {
+export const Preditor = () => {
   const [isLoading, setIsLoading] = useState(false);
   const {
     setModeloId: setContextModeloId,

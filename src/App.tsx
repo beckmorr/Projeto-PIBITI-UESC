@@ -1,11 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Navbar } from "./components/navbar";
 import { Footer } from "./components/footer";
-import { Home } from "./pages/home";
-import { Prediction } from "./pages/prediction";
-import { About } from "./pages/about";
-import Visualizar from "./pages/visualizar";
+import { Home, Preditor, Simulador, Visualizar } from "./pages";
 import { PredictionProvider } from "./contexts/PredictionContext";
+import { ROUTES } from "./constants/navigation";
 
 function App() {
   return (
@@ -15,10 +13,12 @@ function App() {
           <Navbar />
           <main className="w-full flex-grow">
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/simulador" element={<Prediction mode="conduta" />} />
-              <Route path="/sobre" element={<About />} />
-              <Route path="/visualizar" element={<Visualizar />} />
+              <Route path={ROUTES.root} element={<Navigate to={ROUTES.home} replace />} />
+              <Route path={ROUTES.home} element={<Home />} />
+              <Route path={ROUTES.preditor} element={<Preditor />} />
+              <Route path={ROUTES.simulador} element={<Simulador mode="conduta" />} />
+              <Route path={ROUTES.visualizar} element={<Visualizar />} />
+              <Route path={ROUTES.legacySobre} element={<Navigate to={ROUTES.home} replace />} />
             </Routes>
           </main>
 

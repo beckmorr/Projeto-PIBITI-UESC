@@ -22,10 +22,16 @@ except ImportError:
 
 app = FastAPI()
 
-origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+origins_env = os.getenv("CORS_ORIGINS", "")
+origins = [o.strip() for o in origins_env.split(",") if o.strip()]
+
+if not origins:
+    origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
