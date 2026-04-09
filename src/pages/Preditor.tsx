@@ -1,5 +1,5 @@
 import logoMedidec from "../assets/medidec_logo.png";
-import React, { useState } from "react";
+import { useState } from "react";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
 import { validarIntegridadeCSV } from "../utils/csvValidator";
 import { buildApiUrl } from "../utils/api";
