@@ -1,2 +1,2 @@
 fastapi
-xgboost-cpu==1.7.6
+xgboost==1.7.6
