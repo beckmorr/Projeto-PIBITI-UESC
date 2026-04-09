@@ -1,5 +1,3 @@
 fastapi
-uvicorn
 pandas
-numpy
 xgboost==1.7.6

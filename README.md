@@ -88,7 +88,7 @@ python -m venv venv
 pip install -r .\requirements.txt
 
 # Inicie o servidor
-uvicorn main:app --reload
+uvicorn index:app --reload
 ```
 
 A API estará rodando em: http://127.0.0.1:8000
