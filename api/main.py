@@ -1,16 +1,24 @@
 import xgboost as xgb
 import pandas as pd
 import numpy as np
-import shap
-import matplotlib
-import matplotlib.pyplot as plt
 import io
 import base64
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-matplotlib.use('Agg')
+try:
+    import shap
+except ImportError:
+    shap = None
+
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+except ImportError:
+    matplotlib = None
+    plt = None
 
 app = FastAPI()
 
@@ -70,12 +78,14 @@ modelos["mortalidade"] = carregar_modelo("mortalidade")
 modelos["vm"] = carregar_modelo("ventilacao_mecanica")
 
 for nome, modelo in modelos.items():
-    if modelo:
+    if modelo and shap is not None:
         try:
             explainers[nome] = shap.TreeExplainer(modelo)
             print(f"Explainer SHAP iniciado para: {nome}")
         except Exception as e:
             print(f"Erro ao iniciar Explainer para {nome}: {e}")
+    elif modelo:
+        print(f"SHAP desabilitado para: {nome} (dependencia ausente)")
 
 print("-" * 50)
 
@@ -93,6 +103,9 @@ def plot_to_base64(plt_obj):
         plt_obj.close() 
 
 def gerar_analise_shap(modelo_id, df_input):
+    if shap is None or plt is None:
+        return None
+
     if modelo_id not in explainers:
         return None
 

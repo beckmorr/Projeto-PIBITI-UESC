@@ -1,9 +1,5 @@
 fastapi
 uvicorn
 pandas
-scikit-learn
-joblib
 numpy
-xgboost
-shap
-matplotlib
+xgboost==1.7.6
