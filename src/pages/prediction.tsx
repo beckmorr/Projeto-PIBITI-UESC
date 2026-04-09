@@ -13,6 +13,7 @@ import {
 import { useNavigate, Navigate } from "react-router-dom";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
 import { usePrediction } from "../contexts/PredictionContext";
+import { buildApiUrl } from "../utils/api";
 
 type PredictionMode = "original" | "conduta";
 
@@ -65,7 +66,7 @@ export const Prediction = ({ mode = "original" }: PredictionProps) => {
     setIsSimulating(true);
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/predict/${modelo.id}?tipo_analise=conduta`,
+        buildApiUrl(`/predict/${modelo.id}?tipo_analise=conduta`),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

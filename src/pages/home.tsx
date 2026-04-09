@@ -2,6 +2,7 @@ import logoMedidec from "../assets/medidec_logo.png";
 import React, { useState } from "react";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
 import { validarIntegridadeCSV } from "../utils/csvValidator";
+import { buildApiUrl } from "../utils/api";
 import Papa from "papaparse";
 import { usePrediction } from "../contexts/PredictionContext";
 
@@ -94,7 +95,7 @@ export const Home = () => {
     if (!selecionado) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/predict/${selecionado}?tipo_analise=original`, {
+      const response = await fetch(buildApiUrl(`/predict/${selecionado}?tipo_analise=original`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
