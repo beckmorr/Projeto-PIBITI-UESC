@@ -28,3 +28,4 @@ api/__pycache__/
 src/assets/shap/original/*.png
 src/assets/shap/conduta/*.png
 api/venv/
+api/
