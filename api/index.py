@@ -177,6 +177,7 @@ def _to_float(value):
 
 
 @app.post("/predict/{modelo_id}")
+@app.post("/api/predict/{modelo_id}")
 def predict(modelo_id: str, dados: dict):
     if modelo_id not in modelos or modelos[modelo_id] is None:
         raise HTTPException(status_code=404, detail=f"Modelo '{modelo_id}' nao disponivel.")

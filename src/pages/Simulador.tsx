@@ -74,7 +74,10 @@ export const Simulador = ({ mode = "original" }: SimuladorProps) => {
         },
       );
 
-      if (!response.ok) throw new Error("Erro na simulação");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Erro na simulação");
+      }
 
       const newData = await response.json();
 
@@ -85,7 +88,8 @@ export const Simulador = ({ mode = "original" }: SimuladorProps) => {
       });
     } catch (error) {
       console.error(error);
-      alert("Erro ao simular nova conduta.");
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      alert(`Erro ao simular nova conduta: ${message}`);
     } finally {
       setIsSimulating(false);
     }

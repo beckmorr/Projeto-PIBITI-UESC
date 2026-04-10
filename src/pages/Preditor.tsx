@@ -100,7 +100,10 @@ export const Preditor = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      if (!response.ok) throw new Error("Erro na comunicação com o servidor");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Erro na comunicação com o servidor");
+      }
       const resultado = await response.json();
 
       setContextModeloId(selecionado);
@@ -109,7 +112,8 @@ export const Preditor = () => {
       setCondutaData({ ...resultado, modeloId: selecionado, dadosPaciente: formData });
     } catch (error) {
       console.error(error);
-      alert("Erro ao realizar predição.");
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      alert(`Erro ao realizar predição: ${message}`);
     } finally {
       setIsLoading(false);
     }
