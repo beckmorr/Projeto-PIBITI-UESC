@@ -32,9 +32,8 @@ default_origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if allow_all_origins else (origins or default_origins),
-    allow_origin_regex=None if allow_all_origins else r"^https?://([a-z0-9-]+\.)*vercel\.app$|^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
-    allow_credentials=False if allow_all_origins else True,
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
