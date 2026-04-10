@@ -114,12 +114,109 @@ def plot_to_base64(plt_obj):
         plt_obj.close()
 
 
-def gerar_analise_shap(modelo_id, dados_entrada, feature_names):
-    if shap is None or plt is None:
+def _escape_xml(text):
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&apos;")
+    )
+
+
+def _impacts_to_svg(impactos, title):
+    width = 1000
+    row_h = 28
+    header_h = 70
+    footer_h = 30
+    n = max(1, min(10, len(impactos)))
+    height = header_h + (n * row_h) + footer_h
+
+    max_abs = max(abs(item["contrib"]) for item in impactos[:n]) if impactos[:n] else 1.0
+    max_abs = max(max_abs, 1e-6)
+    center_x = 520
+    scale = 360 / max_abs
+
+    rows = []
+    for i, item in enumerate(impactos[:n]):
+        y = header_h + i * row_h
+        contrib = float(item["contrib"])
+        bar_len = int(abs(contrib) * scale)
+        if contrib >= 0:
+            x = center_x
+            color = "#059669"
+        else:
+            x = center_x - bar_len
+            color = "#dc2626"
+
+        label = _escape_xml(item["variavel"])
+        value_text = f"{contrib:+.3f}"
+
+        rows.append(
+            f'<text x="18" y="{y + 18}" font-size="12" fill="#334155">{label}</text>'
+        )
+        rows.append(
+            f'<rect x="{x}" y="{y + 7}" width="{bar_len}" height="12" fill="{color}" rx="2" />'
+        )
+        rows.append(
+            f'<text x="890" y="{y + 18}" font-size="12" fill="#0f172a" text-anchor="end">{value_text}</text>'
+        )
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <text x="18" y="30" font-size="16" font-weight="700" fill="#0f172a">{_escape_xml(title)}</text>
+  <text x="18" y="50" font-size="12" fill="#64748b">Contribuicoes estimadas por feature (fallback sem SHAP)</text>
+  <line x1="{center_x}" y1="{header_h - 6}" x2="{center_x}" y2="{height - 10}" stroke="#cbd5e1" stroke-width="1" />
+  {''.join(rows)}
+</svg>'''
+
+    encoded = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+    return f"data:image/svg+xml;base64,{encoded}"
+
+
+def gerar_analise_contribuicoes_xgb(modelo_id, dados_entrada, feature_names):
+    booster = modelos.get(modelo_id)
+    if booster is None:
         return None
 
-    if modelo_id not in explainers:
-        return None
+    dmatrix = xgb.DMatrix(dados_entrada, feature_names=feature_names)
+    contribs = booster.predict(dmatrix, pred_contribs=True, validate_features=False)[0]
+
+    valores_reais = dados_entrada[0] if dados_entrada else [0.0] * len(feature_names)
+    feature_contribs = contribs[:-1]
+
+    impactos = []
+    for idx, nome in enumerate(feature_names):
+        valor = float(feature_contribs[idx])
+        impactos.append({
+            "variavel": nome,
+            "contrib": valor,
+            "valor_original": float(valores_reais[idx]) if idx < len(valores_reais) else 0.0,
+            "magnitude": abs(valor),
+        })
+
+    top_5 = sorted(impactos, key=lambda x: x["magnitude"], reverse=True)[:5]
+    top_10 = sorted(impactos, key=lambda x: x["magnitude"], reverse=True)[:10]
+
+    top_5_final = []
+    for item in top_5:
+        top_5_final.append({
+            "variavel": item["variavel"],
+            "contrib": round(item["contrib"], 3),
+            "valor_real": item["valor_original"],
+        })
+
+    return {
+        "top_features": top_5_final,
+        "plot_waterfall": _impacts_to_svg(top_10, "Waterfall (aproximado)") if top_10 else "",
+        "plot_bar": _impacts_to_svg(top_10, "Decision/Bar (aproximado)") if top_10 else "",
+    }
+
+
+def gerar_analise_shap(modelo_id, dados_entrada, feature_names):
+    if shap is None or plt is None or modelo_id not in explainers:
+        return gerar_analise_contribuicoes_xgb(modelo_id, dados_entrada, feature_names)
 
     explainer = explainers[modelo_id]
     shap_values_obj = explainer(dados_entrada)

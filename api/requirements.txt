@@ -1,2 +1,5 @@
 fastapi
 xgboost==1.7.6
+shap==0.48.0
+matplotlib==3.10.7
+uvicorn
