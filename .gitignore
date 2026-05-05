@@ -46,6 +46,10 @@ datasets/
 *.json
 !src/
 
+# Documentation (local only)
+SUPORTE_JSON.md
+EXEMPLO_*.json
+
 # Large third-party libraries
 what-if-tool/
 
