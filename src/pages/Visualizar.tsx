@@ -48,13 +48,16 @@ export default function Visualizar() {
     }));
   };
 
-  // Calculate percentages
-  const probRaw = originalData?.percentual_obito
-    ? originalData.percentual_obito / 100
-    : (originalData?.probabilidade ?? 0);
+  // Prioriza a simulacao de conduta quando disponivel.
+  const activePrediction = condutaData ?? originalData;
 
-  const percObito = originalData?.percentual_obito ?? probRaw * 100;
-  const percAlta = originalData?.percentual_alta ?? 100 - percObito;
+  // Calculate percentages
+  const probRaw = activePrediction?.percentual_obito
+    ? activePrediction.percentual_obito / 100
+    : (activePrediction?.probabilidade ?? 0);
+
+  const percObito = activePrediction?.percentual_obito ?? probRaw * 100;
+  const percAlta = activePrediction?.percentual_alta ?? 100 - percObito;
 
   const displayObito = Number(percObito).toFixed(1);
   const displayAlta = Number(percAlta).toFixed(1);

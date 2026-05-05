@@ -1,7 +1,7 @@
 import logoMedidec from "../assets/medidec_logo.png";
 import { useState } from "react";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
-import { validarIntegridadeCSV } from "../utils/csvValidator";
+import { validarIntegridadeDados } from "../utils/csvValidator";
 import { buildApiUrl } from "../utils/api";
 import Papa from "papaparse";
 import { usePrediction } from "../contexts/PredictionContext";
@@ -11,6 +11,8 @@ export const Preditor = () => {
   const {
     setModeloId: setContextModeloId,
     setDadosPaciente: setContextDadosPaciente,
+    setCsvPacientes: setContextCsvPacientes,
+    setPacienteSelecionadoId: setContextPacienteSelecionadoId,
     setOriginalData,
     setCondutaData,
     limparDados,
@@ -31,6 +33,39 @@ export const Preditor = () => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [todosPacientesCsv, setTodosPacientesCsv] = useState<any[]>([]);
   const [pacienteSelecionadoId, setPacienteSelecionadoId] = useState("");
+
+  const normalizarDadosJSON = (dados: any[]): any[] => {
+    /**
+     * Converte dados JSON de formato aninhado para formato plano
+     * De: { campo: { "1": valor1, "2": valor2 } }
+     * Para: { campo_dia_1: valor1, campo_dia_2: valor2 }
+     */
+    return dados.map((paciente) => {
+      const normalizado: Record<string, any> = {};
+      
+      Object.entries(paciente).forEach(([chave, valor]) => {
+        if (typeof valor === 'object' && valor !== null && !Array.isArray(valor)) {
+          // Detecta formato aninhado: { "1": ..., "2": ..., etc }
+          const isProbablyNestedDays = Object.keys(valor).every(
+            k => /^\d+$/.test(k)
+          );
+          
+          if (isProbablyNestedDays) {
+            // Converte formato aninhado para plano
+            Object.entries(valor as Record<string, any>).forEach(([dia, diaValor]) => {
+              normalizado[`${chave}_dia_${dia}`] = diaValor;
+            });
+          } else {
+            normalizado[chave] = valor;
+          }
+        } else {
+          normalizado[chave] = valor;
+        }
+      });
+      
+      return normalizado;
+    });
+  };
 
   const expandirDadosParaDias = (dadosPaciente: any, modeloId: string) => {
     const config = MODELOS_CONFIG[modeloId];
@@ -53,38 +88,97 @@ export const Preditor = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selecionado) return;
+  const file = e.target.files?.[0];
+  if (!file || !selecionado) return;
 
+  const extensao = file.name.split('.').pop()?.toLowerCase();
+
+  const processarResultados = (dados: any[]) => {
+    if (dados.length === 0) return;
+
+    const colunasDetectadas = Object.keys(dados[0]);
+    const { valido, faltantes = [] } = validarIntegridadeDados(colunasDetectadas, selecionado);
+
+    if (!valido) {
+      alert(`Erro de Compatibilidade!\n\nCampos faltando: ${faltantes.join(", ")}`);
+      setArquivo(null);
+      setContextCsvPacientes([]);
+      setContextPacienteSelecionadoId("");
+      e.target.value = "";
+    } else {
+      setTodosPacientesCsv(dados);
+      setContextCsvPacientes(dados);
+      setArquivo(file);
+      
+      const primeiroPaciente = dados[0];
+      const primeiroId = primeiroPaciente["subject_id"] || "1";
+      
+      setPacienteSelecionadoId(String(primeiroId));
+      setContextPacienteSelecionadoId(String(primeiroId));
+      setFormData(expandirDadosParaDias(primeiroPaciente, selecionado));
+      setIsPanelOpen(true);
+    }
+  };
+
+  if (extensao === 'json') {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const jsonContent = event.target?.result as string;
+        if (!jsonContent || jsonContent.trim().length === 0) {
+          throw new Error("Arquivo JSON vazio");
+        }
+        
+        const json = JSON.parse(jsonContent);
+        
+        if (json === null || json === undefined) {
+          throw new Error("Arquivo JSON contém valor nulo");
+        }
+        
+        let dadosFormatados = Array.isArray(json) ? json : [json];
+        
+        if (dadosFormatados.length === 0) {
+          throw new Error("Arquivo JSON não contém dados");
+        }
+        
+        // Normaliza formato aninhado para format plano (se aplicável)
+        dadosFormatados = normalizarDadosJSON(dadosFormatados);
+        
+        processarResultados(dadosFormatados);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
+        alert(`Erro ao ler o arquivo JSON!\n\nDetalhes: ${errorMessage}\n\nEnsure o arquivo está em formato válido (array de objetos ou um único objeto).`);
+        setArquivo(null);
+        setContextCsvPacientes([]);
+        e.target.value = "";
+      }
+    };
+    reader.onerror = () => {
+      alert("Erro ao carregar o arquivo JSON. Certifique-se de que o arquivo é acessível.");
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  } else if (extensao === 'csv') {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (results: Papa.ParseResult<Record<string, string>>) => {
-        const colunasNoCSV = results.meta.fields || [];
-        const { valido, faltantes = [] } = validarIntegridadeCSV(colunasNoCSV, selecionado);
-
-        if (!valido) {
-          alert(`Erro de Compatibilidade!\n\nColunas faltando: ${faltantes.join(", ")}`);
-          setArquivo(null);
-          e.target.value = "";
-        } else {
-          const dados = results.data;
-          if (dados.length > 0) {
-            setTodosPacientesCsv(dados);
-            setArquivo(file);
-            const primeiroPaciente = dados[0];
-            const primeiroId = primeiroPaciente["subject_id"] || "1";
-            setPacienteSelecionadoId(primeiroId);
-            setFormData(expandirDadosParaDias(primeiroPaciente, selecionado));
-            setIsPanelOpen(true); 
-          }
-        }
+      complete: (results) => {
+        processarResultados(results.data);
+      },
+      error: (error: any) => {
+        alert(`Erro ao ler o arquivo CSV: ${error.message}`);
+        e.target.value = "";
       },
     });
-  };
+  } else {
+    alert("Formato de arquivo não suportado. Use .csv ou .json");
+    e.target.value = "";
+  }
+};
 
   const handleTrocaPaciente = (id: string) => {
     setPacienteSelecionadoId(id);
+    setContextPacienteSelecionadoId(id);
     const pacienteEncontrado = todosPacientesCsv.find((p) => p["subject_id"] === id);
     if (pacienteEncontrado) {
       setFormData(expandirDadosParaDias(pacienteEncontrado, selecionado));
@@ -110,6 +204,22 @@ export const Preditor = () => {
       setContextDadosPaciente(formData);
       setOriginalData({ ...resultado, modeloId: selecionado, dadosPaciente: formData });
       setCondutaData({ ...resultado, modeloId: selecionado, dadosPaciente: formData });
+
+      // Sincroniza automaticamente o dataset com o WIT oficial.
+      if (todosPacientesCsv.length > 0) {
+        try {
+          await fetch(buildApiUrl(`/wit/sync/${selecionado}`), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rows: todosPacientesCsv,
+              start_tensorboard: true,
+            }),
+          });
+        } catch (syncError) {
+          console.warn("Falha ao sincronizar WIT automaticamente:", syncError);
+        }
+      }
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -150,6 +260,8 @@ export const Preditor = () => {
                 setFormData({});
                 setArquivo(null);
                 setTodosPacientesCsv([]);
+                setContextCsvPacientes([]);
+                setContextPacienteSelecionadoId("");
                 limparDados();
               }}
               className="w-full p-3 bg-white white:bg-slate-800 border border-slate-200 white:border-slate-700 rounded-xl shadow-sm text-slate-700 focus:ring-2 focus:ring-green-500 outline-none transition-all cursor-pointer"
@@ -172,14 +284,14 @@ export const Preditor = () => {
             </button>
 
             <div className="relative">
-              <input type="file" accept=".csv" onChange={handleFileChange} disabled={!isModeloSelected} className="hidden" id="file-upload" />
+              <input type="file" accept=".csv,.json" onChange={handleFileChange} disabled={!isModeloSelected} className="hidden" id="file-upload" />
               <label
                 htmlFor={isModeloSelected ? "file-upload" : ""}
                 className={`flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed rounded-xl transition-all cursor-pointer ${
                   isModeloSelected ? "bg-slate-50 border-slate-300 hover:border-blue-400 text-slate-600" : "bg-slate-50/50 border-slate-200 text-slate-300 cursor-not-allowed"
                 }`}
               >
-                {arquivo ? "Arquivo Carregado (Trocar)" : "Carregar arquivo CSV"}
+                {arquivo ? "Arquivo Carregado (Trocar)" : "Carregar arquivo"}
               </label>
             </div>
           </div>

@@ -26,6 +26,10 @@ interface PredictionContextType {
   setModeloId: (id: string | null) => void;
   dadosPaciente: Record<string, any>;
   setDadosPaciente: (dados: Record<string, any>) => void;
+  csvPacientes: Record<string, any>[];
+  setCsvPacientes: (dados: Record<string, any>[]) => void;
+  pacienteSelecionadoId: string;
+  setPacienteSelecionadoId: (id: string) => void;
   originalData: PredictionData | null;
   setOriginalData: (data: PredictionData | null) => void;
   condutaData: PredictionData | null;
@@ -43,6 +47,8 @@ export const PredictionProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [modeloId, setModeloId] = useState<string | null>(null);
   const [dadosPaciente, setDadosPaciente] = useState<Record<string, any>>({});
+  const [csvPacientes, setCsvPacientes] = useState<Record<string, any>[]>([]);
+  const [pacienteSelecionadoId, setPacienteSelecionadoId] = useState<string>("");
   const [originalData, setOriginalData] = useState<PredictionData | null>(null);
   const [condutaData, setCondutaData] = useState<PredictionData | null>(null);
 
@@ -52,6 +58,8 @@ export const PredictionProvider: React.FC<{ children: ReactNode }> = ({
   const limparDados = () => {
     setModeloId(null);
     setDadosPaciente({});
+    setCsvPacientes([]);
+    setPacienteSelecionadoId("");
     setOriginalData(null);
     setCondutaData(null);
   };
@@ -63,6 +71,10 @@ export const PredictionProvider: React.FC<{ children: ReactNode }> = ({
         setModeloId,
         dadosPaciente,
         setDadosPaciente,
+        csvPacientes,
+        setCsvPacientes,
+        pacienteSelecionadoId,
+        setPacienteSelecionadoId,
         originalData,
         setOriginalData,
         condutaData,

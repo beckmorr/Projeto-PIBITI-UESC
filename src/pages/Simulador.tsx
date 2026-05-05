@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   PieChart,
   X,
+  ExternalLink,
 } from "lucide-react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
@@ -20,6 +21,17 @@ type SimuladorMode = "original" | "conduta";
 interface SimuladorProps {
   mode?: SimuladorMode;
 }
+
+interface WitConfigResponse {
+  tensorboard_url?: string;
+  examples_path: string;
+  examples_path_exists?: boolean;
+  model_type?: string;
+  model_name?: string;
+  inference_address?: string;
+}
+
+const DEFAULT_WIT_URL = "http://localhost:6006/#whatif";
 
 export const Simulador = ({ mode = "original" }: SimuladorProps) => {
   const navigate = useNavigate();
@@ -38,6 +50,10 @@ export const Simulador = ({ mode = "original" }: SimuladorProps) => {
     "performance" | null
   >(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isContrafactualOpen, setIsContrafactualOpen] = useState(false);
+  const [isOpeningContrafactual, setIsOpeningContrafactual] = useState(false);
+  const [witUrl, setWitUrl] = useState(DEFAULT_WIT_URL);
+  const [witIframeKey, setWitIframeKey] = useState(0);
 
   // Sincronizar patientData com contexto
   useEffect(() => {
@@ -61,16 +77,42 @@ export const Simulador = ({ mode = "original" }: SimuladorProps) => {
   const camposUnicos = modelo.campos.filter((c) => c.categoria === "unico");
   const camposDiarios = modelo.campos.filter((c) => c.categoria === "diario");
 
+  const buildSimulationPayload = () => {
+    const payload: Record<string, any> = { ...patientData };
+
+    // Consolida os campos diarios em colunas base para o backend.
+    camposDiarios.forEach((campo) => {
+      const valores: number[] = [];
+
+      for (let dia = 1; dia <= totalDiasExibicao; dia++) {
+        const chaveDia = `${campo.id}_dia_${dia}`;
+        const valor = patientData[chaveDia];
+        if (valor !== undefined && valor !== "" && !isNaN(Number(valor))) {
+          valores.push(Number(valor));
+        }
+      }
+
+      if (valores.length > 0) {
+        const media = valores.reduce((a, b) => a + b, 0) / valores.length;
+        payload[campo.id] = media;
+      }
+    });
+
+    return payload;
+  };
+
   // --- FUNÇÃO DE SIMULAÇÃO ---
   const handleSimulation = async () => {
     setIsSimulating(true);
     try {
+      const simulationPayload = buildSimulationPayload();
+
       const response = await fetch(
         buildApiUrl(`/predict/${modelo.id}?tipo_analise=conduta`),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(patientData),
+          body: JSON.stringify(simulationPayload),
         },
       );
 
@@ -147,6 +189,67 @@ export const Simulador = ({ mode = "original" }: SimuladorProps) => {
     setPatientData(novosDados);
   };
 
+  const buildWitUrlFromConfig = (config: WitConfigResponse) => {
+    const rawBase = (config.tensorboard_url || DEFAULT_WIT_URL).trim();
+    const base = rawBase.replace(/#.*$/, "").replace(/\/$/, "");
+
+    const pluginParams = new URLSearchParams({
+      examplesPath: config.examples_path,
+      examples_path: config.examples_path,
+      modelType: config.model_type || "classification",
+      model_type: config.model_type || "classification",
+      modelName: config.model_name || modelo.id,
+      model_name: config.model_name || modelo.id,
+      inferenceAddress: config.inference_address || "local",
+      inference_address: config.inference_address || "local",
+      maxExamples: "1000",
+      max_examples: "1000",
+      samplingOdds: "1",
+      sampling_odds: "1",
+    });
+
+    const paramString = pluginParams.toString();
+    return `${base}/?${paramString}#whatif&${paramString}`;
+  };
+
+  const handleOpenContrafactual = async () => {
+    setIsOpeningContrafactual(true);
+    try {
+      const response = await fetch(buildApiUrl(`/wit/config/${modelo.id}`));
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Nao foi possivel carregar configuracao do WIT.");
+      }
+
+      const config: WitConfigResponse = await response.json();
+      const autoUrl = buildWitUrlFromConfig(config);
+
+      setWitUrl(autoUrl);
+      setWitIframeKey((k) => k + 1);
+      setIsContrafactualOpen(true);
+
+      if (config.examples_path_exists === false) {
+        alert(
+          "CSV do modelo ainda nao encontrado. Gere/sincronize os dados WIT para este modelo e recarregue.",
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      alert(`Erro ao abrir Contrafactual: ${message}`);
+      setIsContrafactualOpen(true);
+    } finally {
+      setIsOpeningContrafactual(false);
+    }
+  };
+
+  const normalizedWitUrl = (() => {
+    const trimmed = witUrl.trim();
+    if (!trimmed) return DEFAULT_WIT_URL;
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+    return `http://${trimmed}`;
+  })();
+
   // --- IMAGENS DO MODAL ---
   let activeImages: Array<{ title: string; src: string; desc: string }> = [];
 
@@ -219,6 +322,18 @@ export const Simulador = ({ mode = "original" }: SimuladorProps) => {
                     </button>
                     <button className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-slate-100 white:bg-slate-800 text-slate-600 white:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 white:hover:bg-slate-700 transition-colors">
                       <Dices className="w-3 h-3" /> DICE
+                    </button>
+                    <button
+                      onClick={handleOpenContrafactual}
+                      disabled={isOpeningContrafactual}
+                      className="flex-1 md:flex-none justify-center flex items-center gap-1 px-3 py-2 bg-amber-100 white:bg-amber-900/30 text-amber-700 white:text-amber-300 rounded-lg text-xs font-bold hover:bg-amber-200 white:hover:bg-amber-900/50 transition-colors"
+                    >
+                      {isOpeningContrafactual ? (
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <ExternalLink className="w-3 h-3" />
+                      )}
+                      {isOpeningContrafactual ? "Abrindo..." : "Contrafactual"}
                     </button>
                   </div>
                 )}
@@ -409,6 +524,66 @@ export const Simulador = ({ mode = "original" }: SimuladorProps) => {
               >
                 Fechar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isContrafactualOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white white:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col border border-slate-200 white:border-slate-800">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 white:border-slate-800 shrink-0 gap-4 flex-wrap">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 white:text-white">
+                  Contrafactual (TensorBoard + What-If)
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Explore cenarios contrafactuais sem sair do Simulador.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 w-full lg:w-auto">
+                <input
+                  value={witUrl}
+                  onChange={(e) => setWitUrl(e.target.value)}
+                  className="w-full lg:w-[340px] px-3 py-2 rounded-lg border border-slate-300 white:border-slate-700 bg-white white:bg-slate-800 text-sm"
+                  placeholder="http://localhost:6006/#whatif"
+                />
+                <button
+                  onClick={() => setWitIframeKey((k) => k + 1)}
+                  className="px-3 py-2 rounded-lg bg-slate-900 white:bg-slate-700 text-white text-sm font-semibold inline-flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" /> Recarregar
+                </button>
+                <a
+                  href={normalizedWitUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-2 rounded-lg border border-slate-300 white:border-slate-700 text-sm font-semibold text-slate-700 white:text-slate-200 inline-flex items-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" /> Nova guia
+                </a>
+                <button
+                  onClick={() => setIsContrafactualOpen(false)}
+                  className="p-2 bg-slate-100 white:bg-slate-800 rounded-full hover:bg-slate-200 white:hover:bg-slate-700 transition-colors"
+                  aria-label="Fechar"
+                >
+                  <X className="w-5 h-5 text-slate-500 white:text-slate-400" />
+                </button>
+              </div>
+            </div>
+
+            <div className="px-4 pt-3 text-xs text-slate-500 bg-slate-50 white:bg-slate-950/40 border-b border-slate-200 white:border-slate-800">
+              Se o navegador bloquear o iframe, use o botao Nova guia.
+            </div>
+
+            <div className="flex-1 overflow-hidden bg-white white:bg-slate-950 rounded-b-2xl">
+              <iframe
+                key={witIframeKey}
+                src={normalizedWitUrl}
+                title="Contrafactual What-If Tool"
+                className="w-full h-full"
+              />
             </div>
           </div>
         </div>

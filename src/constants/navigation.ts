@@ -3,6 +3,8 @@ export const ROUTES = {
   home: "/home",
   preditor: "/preditor",
   simulador: "/simulador",
+  contrafactual: "/contrafactual",
+  witOficial: "/wit-oficial",
   visualizar: "/visualizar",
   legacySobre: "/sobre",
 } as const;
