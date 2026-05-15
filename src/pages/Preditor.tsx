@@ -204,22 +204,6 @@ export const Preditor = () => {
       setContextDadosPaciente(formData);
       setOriginalData({ ...resultado, modeloId: selecionado, dadosPaciente: formData });
       setCondutaData({ ...resultado, modeloId: selecionado, dadosPaciente: formData });
-
-      // Sincroniza automaticamente o dataset com o WIT oficial.
-      if (todosPacientesCsv.length > 0) {
-        try {
-          await fetch(buildApiUrl(`/wit/sync/${selecionado}`), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              rows: todosPacientesCsv,
-              start_tensorboard: true,
-            }),
-          });
-        } catch (syncError) {
-          console.warn("Falha ao sincronizar WIT automaticamente:", syncError);
-        }
-      }
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : "Erro desconhecido";

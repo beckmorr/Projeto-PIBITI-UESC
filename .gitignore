@@ -50,9 +50,6 @@ datasets/
 SUPORTE_JSON.md
 EXEMPLO_*.json
 
-# Large third-party libraries
-what-if-tool/
-
 # Build and temp files
 .cache/
 *.tmp

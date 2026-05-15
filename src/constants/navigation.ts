@@ -4,7 +4,6 @@ export const ROUTES = {
   preditor: "/preditor",
   simulador: "/simulador",
   contrafactual: "/contrafactual",
-  witOficial: "/wit-oficial",
   visualizar: "/visualizar",
   legacySobre: "/sobre",
 } as const;
