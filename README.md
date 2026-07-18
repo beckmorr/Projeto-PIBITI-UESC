@@ -89,3 +89,15 @@ pip install -r .\requirements.txt
 
 # Inicie o servidor
 uvicorn index:app --reload
+```
+### 2. Rodando o Front End
+
+```bash
+# Em outro terminal volte à pasta raiz 
+cd ..
+
+# Utilize o comando abaixo para instalar o npm
+npm install
+
+# Use o comando para gerar o link de visualização da ferramenta em seu navegador
+npm run dev
