@@ -20,21 +20,21 @@ A interface proposta nesse repositório é uma aplicação web completa que util
 ## Funcionalidades Principais
 
 ### 1. Predição de Risco com IA Avançada
-Utiliza modelos XGBoost otimizados (formato .ubj) para calcular a probabilidade de:
+Utiliza dois modelos XGBoost otimizados (formato .ubj) para calcular a probabilidade de:
 - Mortalidade Hospitalar
 - Necessidade de Ventilação Mecânica
-- ...
 
 ### 2. Explicabilidade (XAI) em Tempo Real
 O sistema oferece transparência nas decisões do modelo. Para cada predição, são gerados:
 - **Gráficos SHAP (Waterfall & Bar Plot):** Gerados dinamicamente no backend, mostrando exatamente quais variáveis contribuíram para aumentar ou diminuir o risco daquele paciente específico.
 - **Top 5 Fatores de Impacto:** Lista textual das variáveis mais influentes no desfecho.
 
-### 3. Simulação de Conduta (Modo Interativo)
-Uma aba exclusiva de **"Simular Conduta"** onde o médico pode:
+### 3. Análise Contrafactual (Modo Interativo)
+Uma aba exclusiva de **"Análise Contrafactual"** onde o médico pode:
 - Alterar variáveis clínicas dinâmicas (ex: dias de nutrição, balanço hídrico, uso de drogas vasoativas).
+- Compreender o cenário contrafactual (*"What-if analysis"*), observando como pequenas mudanças nas condições ou condutas do paciente alterariam a predição de risco final.
 - Receber uma nova predição e novos gráficos explicativos instantaneamente.
-- Comparar o cenário **Original** vs. **Simulado** para apoiar a tomada de decisão.
+- Comparar o cenário **Original** vs. **Conduta** para apoiar a tomada de decisão clínica fundamentada.
 
 ### 4. Visualização de Performance
 Acesso rápido às métricas de validação dos modelos:
