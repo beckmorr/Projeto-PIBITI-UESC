@@ -1,0 +1,7 @@
+fastapi
+numpy
+xgboost==1.7.6
+shap
+matplotlib
+uvicorn
+pandas

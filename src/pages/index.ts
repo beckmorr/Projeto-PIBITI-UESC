@@ -1,4 +1,4 @@
 export { Home } from "./Home";
 export { Preditor } from "./Preditor";
-export { Simulador } from "./Simulador";
+export { Contrafactual } from "./Contrafactual";
 export { default as Visualizar } from "./Visualizar";

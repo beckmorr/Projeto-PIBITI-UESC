@@ -11,8 +11,6 @@ node_modules
 dist
 dist-ssr
 *.local
-
-# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -23,7 +21,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Python
 api/__pycache__/
 *.pyc
 api/venv/
@@ -32,25 +29,20 @@ __pycache__/
 *.egg-info/
 .env
 .venv
+node_modules
 
-# Project assets
 src/assets/shap/original/*.png
-src/assets/shap/conduta/*.png
+src/assets/shap/conduta/*.png	
 
-# Data files and sensitive data
-api/
-csvs\ e\ json/
-data/
-datasets/
 *.csv
-*.json
+!csvs/
+!csvs/*.csv
+
+!package.json
+!tsconfig.json
+!tsconfig.app.json
+!tsconfig.node.json
+!vercel.json
+!postcss.config.js
+!tailwind.config.js
 !src/
-
-# Documentation (local only)
-SUPORTE_JSON.md
-EXEMPLO_*.json
-
-# Build and temp files
-.cache/
-*.tmp
-.DS_Store

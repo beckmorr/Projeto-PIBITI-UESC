@@ -3,6 +3,18 @@ import mortFeature from "../assets/desempenho_modelos/mortalidade/perf_feature_i
 import mortLearning from "../assets/desempenho_modelos/mortalidade/perf_learning.png";
 import mortPR from "../assets/desempenho_modelos/mortalidade/perf_pr.png";
 import mortROC from "../assets/desempenho_modelos/mortalidade/perf_roc.png";
+import mortTrainingBalance from "../assets/desempenho_modelos/treinamento/mortalidade/balance_desfecho.png";
+import mortTrainingDays from "../assets/desempenho_modelos/treinamento/mortalidade/dias_internacao_por_desfecho.png";
+import mortTrainingDeathsBySex from "../assets/desempenho_modelos/treinamento/mortalidade/obito_por_sexo.png";
+import mortTrainingKcal from "../assets/desempenho_modelos/treinamento/mortalidade/media_calorias_por_desfecho.png";
+import vmTrainingPao2 from "../assets/desempenho_modelos/treinamento/vm/pao2_fio2_por_dia.png";
+import vmTrainingPeep from "../assets/desempenho_modelos/treinamento/vm/peep_respiratory_rate.png";
+import vmTrainingCuffLeak from "../assets/desempenho_modelos/treinamento/vm/cuff_leak_por_secrecao.png";
+import vmConfusion from "../assets/desempenho_modelos/vm/perf_confusion.png";
+import vmROC from "../assets/desempenho_modelos/vm/perf_roc.png";
+import vmPR from "../assets/desempenho_modelos/vm/perf_pr.png";
+import vmLearning from "../assets/desempenho_modelos/vm/perf_learning.png";
+import vmFeature from "../assets/desempenho_modelos/vm/perf_feature_importance.png";
 
 export interface GraficoConfig {
   title: string;
@@ -36,6 +48,7 @@ export interface ModeloConfig {
   graficos?: {
     performance: GraficoConfig[];
     shap: GraficoConfig[];
+    training?: GraficoConfig[];
   };
 }
 
@@ -43,8 +56,8 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
   mortalidade: {
     id: "mortalidade",
     nome: "Mortalidade Hospitalar",
-    diasDeAcompanhamento: 5,
-    diasAdicionais: 3,
+    diasDeAcompanhamento: 1,
+    diasAdicionais: 1,
     metadados: {
       descricaoBreve:
         "Modelo para estimar o risco de mortalidade hospitalar com base em variaveis clinicas e evolucao diaria do paciente.",
@@ -84,6 +97,28 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
         },
       ],
       shap: [],
+      training: [
+        {
+          title: "Base de treinamento - Desfecho",
+          src: mortTrainingBalance,
+          desc: "Distribuição dos pacientes entre alta e óbito na base usada para treinar o modelo.",
+        },
+        {
+          title: "Dias de internamento por desfecho",
+          src: mortTrainingDays,
+          desc: "Comparação da permanência na UTI entre alta e óbito.",
+        },
+        {
+          title: "Óbitos por sexo",
+          src: mortTrainingDeathsBySex,
+          desc: "Quantidade de óbitos estratificada por sexo na base de treinamento.",
+        },
+        {
+          title: "Média de Calorias (Kcal/Kg/dia) por desfecho",
+          src: mortTrainingKcal,
+          desc: "Média de consumo de calorias por desfecho na base de treinamento.",
+        },
+      ],
     },
     campos: [
       {
@@ -112,6 +147,7 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
         label: "Faixa de IMC",
         type: "number",
         categoria: "unico",
+        editavel: false,
       },
       {
         id: "daysinICU",
@@ -185,7 +221,7 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
         type: "number",
         categoria: "diario",
       },
-      { id: "diarrhea", label: "Diarreia", type: "number", categoria: "diario" },
+      { id: "diarrhea", label: "Diarreia", type: "number", categoria: "diario", editavel: false,},
       {
         id: "MV_start",
         label: "Início VM",
@@ -376,7 +412,7 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
     id: "vm",
     nome: "Ventilação Mecânica",
     diasDeAcompanhamento: 3,
-    diasAdicionais: 2,
+    diasAdicionais: 3,
     metadados: {
       descricaoBreve:
         "Modelo para estimar a necessidade de ventilacao mecanica a partir de indicadores respiratorios e evolucao clinica.",
@@ -388,8 +424,51 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
       },
     },
     graficos: {
-      performance: [],
+      performance: [
+        {
+          title: "Matriz de Confusão",
+          src: vmConfusion,
+          desc: "Comparação entre acertos e erros do modelo de ventilação.",
+        },
+        {
+          title: "Curva ROC",
+          src: vmROC,
+          desc: "Relação entre Sensibilidade e Especificidade da árvore.",
+        },
+        {
+          title: "Precision-Recall",
+          src: vmPR,
+          desc: "Equilíbrio entre precisão e recuperação respiratória.",
+        },
+        {
+          title: "Curva de Aprendizado",
+          src: vmLearning,
+          desc: "Evolução do aprendizado em ventilação com o aumento de dados.",
+        },
+        {
+          title: "Importância das Variáveis",
+          src: vmFeature,
+          desc: "Fatores respiratórios e clínicos que mais impactaram a decisão.",
+        },
+      ],
       shap: [],
+      training: [
+        {
+          title: "Base de treinamento - Proporção de Desfechos",
+          src: vmTrainingPao2,
+          desc: "Proporção estatística entre pacientes com sucesso no desmame e pacientes com falha ou permanência na ventilação mecânica.",
+        },
+        {
+          title: "Níveis de PEEP por Desfecho",
+          src: vmTrainingPeep,
+          desc: "Distribuição dos níveis de pressão positiva (PEEP) mensurados no primeiro dia, comparando os grupos de desfecho.",
+        },
+        {
+          title: "Relação PaO2/FiO2 por Desfecho",
+          src: vmTrainingCuffLeak,
+          desc: "Distribuição do índice de oxigenação pulmonar no primeiro dia entre os pacientes que progrediram para sucesso ou falha.",
+        },
+      ],
     },
     campos: [
       {
@@ -397,12 +476,14 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
         label: "ID do Paciente",
         type: "number",
         categoria: "unico",
+        editavel: false,
       },
       {
         id: "age",
         label: "Idade",
         type: "number",
         categoria: "unico",
+        editavel: false,
       },
       {
         id: "pao2_fio2_ratio",
@@ -443,7 +524,7 @@ export const MODELOS_CONFIG: Record<string, ModeloConfig> = {
       {
         id: "cuff_leak_test",
         label: "Teste de Vazamento de Cuff",
-        type: "select",
+        type: "number",
         categoria: "diario",
       },
       {

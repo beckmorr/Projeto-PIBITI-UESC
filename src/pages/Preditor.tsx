@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "../constants/navigation";
 import logoMedidec from "../assets/medidec_logo.png";
 import { useState } from "react";
 import { MODELOS_CONFIG } from "../constants/modelsConfig";
@@ -5,8 +7,117 @@ import { validarIntegridadeDados } from "../utils/csvValidator";
 import { buildApiUrl } from "../utils/api";
 import Papa from "papaparse";
 import { usePrediction } from "../contexts/PredictionContext";
+import {
+  montarDadosBaseDoModelo,
+  normalizarDadosParaFormulario,
+} from "../utils/modelData";
+
+type SectionConfig = {
+  title: string;
+  description?: string;
+  fieldIds: string[];
+};
+
+const SECOES_POR_MODELO: Record<string, SectionConfig[]> = {
+  mortalidade: [
+    {
+      title: "Dados básicos",
+      description: "Identificação e perfil clínico inicial.",
+      fieldIds: ["subject_id", "gender", "age_group", "IMC_range"],
+    },
+    {
+      title: "Nutrição e suporte",
+      description: "Variáveis ligadas à evolução nutricional e tempo de UTI.",
+      fieldIds: [
+        "daysinICU",
+        "firstnutrition",
+        "avgdaily_KcalKg_firstICU7days",
+        "avgdaily_KcalKg_firstNT7days",
+        "avgdaily_KcalKg_ICUdays",
+        "avgdaily_KcalKg_NTdays",
+        "avgdaily_gKg_firstICU7days",
+        "avgdaily_gKg_firstNT7days",
+        "avgdaily_gKg_ICUdays",
+        "avgdaily_gKg_NTdays",
+      ],
+    },
+    {
+      title: "Eventos e suporte ventilatório",
+      description: "Ocorrências clínicas e intervenções durante a internação.",
+      fieldIds: [
+        "hightemperature_days",
+        "constipation",
+        "diarrhea",
+        "MV_start",
+        "MV_return",
+        "MV_weaning",
+        "hemodialysis",
+        "MV_stay",
+      ],
+    },
+    {
+      title: "Marcadores metabólicos e laboratoriais",
+      description: "Variáveis laboratoriais e séries de acompanhamento.",
+      fieldIds: [
+        "FB72H",
+        "FB72hvariation",
+        "FB72htrend",
+        "FBtrend",
+        "HGThyper_days",
+        "HGThypo_days",
+        "noraTo025days",
+        "nora025to050days",
+        "noraupto050days",
+        "norafreedays",
+        "vaso_days",
+        "high_urea_days",
+        "high_creatinine_days",
+        "low_totallynpho_days",
+        "low_hemoglobine_days",
+        "high_bilirubins_days",
+        "hypo_albumin_days",
+        "high_triglycerides_days",
+        "hyper_potassium_days",
+        "hypo_potassium_days",
+        "hyper_magnesium_days",
+        "hypo_magnesium_days",
+        "hyper_sodium_days",
+        "hypo_sodium_days",
+        "hypo_phosphor",
+        "max_ast",
+        "max_alt",
+        "max_alkaline",
+      ],
+    },
+  ],
+  vm: [
+    {
+      title: "Dados básicos",
+      description: "Identificação principal do paciente.",
+      fieldIds: ["subject_id", "age"],
+    },
+    {
+      title: "Ventilação e parâmetros respiratórios",
+      description: "Variáveis usadas para estimar necessidade ventilatória.",
+      fieldIds: [
+        "pao2_fio2_ratio",
+        "peep",
+        "fio2",
+        "tidal_volume",
+        "respiratory_rate",
+        "sedation_scale",
+      ],
+    },
+    {
+      title: "Achados clínicos complementares",
+      description: "Informações adicionais do exame respiratório.",
+      fieldIds: ["cuff_leak_test", "secretions_quantity"],
+    },
+  ],
+};
 
 export const Preditor = () => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const {
     setModeloId: setContextModeloId,
@@ -34,58 +145,56 @@ export const Preditor = () => {
   const [todosPacientesCsv, setTodosPacientesCsv] = useState<any[]>([]);
   const [pacienteSelecionadoId, setPacienteSelecionadoId] = useState("");
 
-  const normalizarDadosJSON = (dados: any[]): any[] => {
-    /**
-     * Converte dados JSON de formato aninhado para formato plano
-     * De: { campo: { "1": valor1, "2": valor2 } }
-     * Para: { campo_dia_1: valor1, campo_dia_2: valor2 }
-     */
-    return dados.map((paciente) => {
-      const normalizado: Record<string, any> = {};
-      
-      Object.entries(paciente).forEach(([chave, valor]) => {
-        if (typeof valor === 'object' && valor !== null && !Array.isArray(valor)) {
-          // Detecta formato aninhado: { "1": ..., "2": ..., etc }
-          const isProbablyNestedDays = Object.keys(valor).every(
-            k => /^\d+$/.test(k)
-          );
-          
-          if (isProbablyNestedDays) {
-            // Converte formato aninhado para plano
-            Object.entries(valor as Record<string, any>).forEach(([dia, diaValor]) => {
-              normalizado[`${chave}_dia_${dia}`] = diaValor;
-            });
-          } else {
-            normalizado[chave] = valor;
-          }
-        } else {
-          normalizado[chave] = valor;
-        }
-      });
-      
-      return normalizado;
-    });
+  const selectedModel = MODELOS_CONFIG[selecionado];
+  const diasAcompanhamento = selectedModel?.diasDeAcompanhamento ?? 1;
+
+  const normalizarDadosDoSelecionado = (dados: any[]) => {
+    if (!selecionado) return dados;
+    return normalizarDadosParaFormulario(dados, selecionado);
   };
 
-  const expandirDadosParaDias = (dadosPaciente: any, modeloId: string) => {
-    const config = MODELOS_CONFIG[modeloId];
-    if (!config || !dadosPaciente) return {};
-    const dadosFormatados: Record<string, any> = { ...dadosPaciente };
-    config.campos.forEach((campo) => {
-      if (campo.categoria === "diario") {
-        const valorBase = dadosPaciente[campo.id];
-        if (valorBase !== undefined && valorBase !== "") {
-          for (let i = 1; i <= config.diasDeAcompanhamento; i++) {
-            const chaveDia = `${campo.id}_dia_${i}`;
-            if (!dadosFormatados[chaveDia]) {
-              dadosFormatados[chaveDia] = valorBase;
-            }
-          }
-        }
-      }
-    });
-    return dadosFormatados;
-  };
+  const renderCampoDiario = (campo: { id: string; label: string; type: "number" | "select" }) => (
+    <div key={campo.id} className="mx-auto w-full max-w-[360px] rounded-xl border border-slate-100 bg-slate-50/70 p-2.5">
+      <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+        {campo.label}
+      </label>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5 justify-items-start">
+        {Array.from({ length: diasAcompanhamento }, (_, index) => {
+          const dia = index + 1;
+          const fieldKey = `${campo.id}_dia_${dia}`;
+          const valorAtual = formData[fieldKey] ?? "";
+
+          return (
+            <div key={fieldKey} className="space-y-1 w-full max-w-[105px]">
+              <span className="block text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                Dia {dia}
+              </span>
+
+              {campo.type === "select" ? (
+                <select
+                  value={valorAtual}
+                  onChange={(e) => setFormData({ ...formData, [fieldKey]: e.target.value })}
+                  className="w-full p-1.5 border border-slate-200 rounded-md text-[11px] focus:ring-2 focus:ring-green-500 outline-none bg-white"
+                >
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                </select>
+              ) : (
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={valorAtual}
+                  onChange={(e) => setFormData({ ...formData, [fieldKey]: e.target.value })}
+                  className="w-full p-1.5 border border-slate-200 rounded-md text-[11px] focus:ring-2 focus:ring-green-500 outline-none bg-white"
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
@@ -106,16 +215,21 @@ export const Preditor = () => {
       setContextPacienteSelecionadoId("");
       e.target.value = "";
     } else {
-      setTodosPacientesCsv(dados);
-      setContextCsvPacientes(dados);
+      const dadosParaFormulario = normalizarDadosDoSelecionado(dados);
+      setTodosPacientesCsv(dadosParaFormulario);
+      setContextCsvPacientes(
+        dadosParaFormulario.map((paciente) =>
+          selectedModel ? montarDadosBaseDoModelo(paciente, selectedModel) : paciente,
+        ),
+      );
       setArquivo(file);
       
-      const primeiroPaciente = dados[0];
+      const primeiroPaciente = dadosParaFormulario[0];
       const primeiroId = primeiroPaciente["subject_id"] || "1";
       
       setPacienteSelecionadoId(String(primeiroId));
       setContextPacienteSelecionadoId(String(primeiroId));
-      setFormData(expandirDadosParaDias(primeiroPaciente, selecionado));
+      setFormData(primeiroPaciente);
       setIsPanelOpen(true);
     }
   };
@@ -142,7 +256,7 @@ export const Preditor = () => {
         }
         
         // Normaliza formato aninhado para format plano (se aplicável)
-        dadosFormatados = normalizarDadosJSON(dadosFormatados);
+        dadosFormatados = normalizarDadosDoSelecionado(dadosFormatados);
         
         processarResultados(dadosFormatados);
       } catch (err) {
@@ -181,7 +295,7 @@ export const Preditor = () => {
     setContextPacienteSelecionadoId(id);
     const pacienteEncontrado = todosPacientesCsv.find((p) => p["subject_id"] === id);
     if (pacienteEncontrado) {
-      setFormData(expandirDadosParaDias(pacienteEncontrado, selecionado));
+      setFormData(pacienteEncontrado);
     }
   };
 
@@ -189,10 +303,14 @@ export const Preditor = () => {
     if (!selecionado) return;
     setIsLoading(true);
     try {
+      const dadosBase = selectedModel ? montarDadosBaseDoModelo(formData, selectedModel) : formData;
       const response = await fetch(buildApiUrl(`/predict/${selecionado}?tipo_analise=original`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          dados: dadosBase,
+          janela: selectedModel?.diasDeAcompanhamento ?? "default",
+        }),
       });
       if (!response.ok) {
         const errorText = await response.text();
@@ -201,9 +319,10 @@ export const Preditor = () => {
       const resultado = await response.json();
 
       setContextModeloId(selecionado);
-      setContextDadosPaciente(formData);
-      setOriginalData({ ...resultado, modeloId: selecionado, dadosPaciente: formData });
-      setCondutaData({ ...resultado, modeloId: selecionado, dadosPaciente: formData });
+      setContextDadosPaciente(dadosBase);
+      setOriginalData({ ...resultado, modeloId: selecionado, dadosPaciente: dadosBase });
+      setCondutaData({ ...resultado, modeloId: selecionado, dadosPaciente: dadosBase });
+      navigate(ROUTES.visualizar);
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -214,8 +333,9 @@ export const Preditor = () => {
   }
 
   const isModeloSelected = selecionado !== "";
-  const selectedModel = MODELOS_CONFIG[selecionado];
   const selectedMetadata = selectedModel?.metadados;
+  const secoesFormulario = SECOES_POR_MODELO[selecionado] ?? [];
+  const camposPorId = new Map(selectedModel?.campos.map((campo) => [campo.id, campo]));
 
   const selectedSummary = selectedMetadata?.descricaoBreve
     || "Selecione um modelo para visualizar uma breve explicacao e as metricas de desempenho.";
@@ -321,7 +441,7 @@ export const Preditor = () => {
 
       {/* CONTAINER DE DADOS DO PACIENTE (MOVIDO PARA BAIXO) */}
       {isPanelOpen && (
-        <div className="w-full mt-6 bg-white white:bg-slate-900 rounded-3xl border border-slate-200 white:border-slate-800 shadow-2xl flex flex-col h-fit max-h-[80vh] overflow-hidden animate-in slide-in-from-bottom duration-500">
+        <div className="mx-auto mt-6 w-full max-w-[1080px] bg-white white:bg-slate-900 rounded-3xl border border-slate-200 white:border-slate-800 shadow-2xl flex flex-col h-fit max-h-[80vh] overflow-hidden animate-in slide-in-from-bottom duration-500">
           <div className="p-6 border-b border-slate-100 white:border-slate-800 flex justify-between items-center bg-slate-50 white:bg-slate-950">
             <div>
               <h2 className="text-xl font-bold text-slate-800 white:text-white">
@@ -352,64 +472,70 @@ export const Preditor = () => {
               </div>
             )}
 
-            <table className="w-full text-left border-collapse bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-              <tbody className="divide-y divide-slate-100">
-                <tr className="bg-slate-100">
-                  <td colSpan={2} className="p-2 text-[10px] font-bold uppercase text-slate-500 pl-4">Campos Únicos</td>
-                </tr>
-                {MODELOS_CONFIG[selecionado]?.campos
-                  .filter((c) => c.categoria === "unico")
-                  .map((campo) => (
-                    <tr key={campo.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-3 text-sm text-slate-700 font-medium pl-4">{campo.label}</td>
-                      <td className="p-3">
-                        <input
-                          type="number"
-                          placeholder="0"
-                          value={formData[campo.id] || ""}
-                          onChange={(e) => setFormData({ ...formData, [campo.id]: e.target.value })}
-                          className="w-32 p-2 text-center border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
-                        />
-                      </td>
-                    </tr>
-                  ))}
+            <div className="space-y-4">
+              {secoesFormulario.map((secao) => (
+                <section key={secao.title} className="mx-auto w-full max-w-[680px] bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 bg-slate-100 border-b border-slate-200">
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-slate-700">{secao.title}</h3>
+                    {secao.description && (
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">{secao.description}</p>
+                    )}
+                  </div>
 
-                <tr className="bg-slate-100">
-                  <td colSpan={2} className="p-2 text-[10px] font-bold uppercase text-slate-500 pl-4">
-                    Acompanhamento Diário ({MODELOS_CONFIG[selecionado]?.diasDeAcompanhamento || 0} dias)
-                  </td>
-                </tr>
-                {MODELOS_CONFIG[selecionado]?.campos
-                  .filter((c) => c.categoria === "diario")
-                  .map((campo) => (
-                    <tr key={campo.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-3 text-sm text-slate-700 font-medium pl-4">{campo.label}</td>
-                      <td className="p-3">
-                        <div className="flex gap-2 overflow-x-auto pb-2 max-w-[400px] custom-scrollbar">
-                          {Array.from({ length: MODELOS_CONFIG[selecionado].diasDeAcompanhamento }).map((_, i) => (
-                            <div key={i} className="flex flex-col gap-1 min-w-[70px]">
-                              <span className="text-[9px] text-slate-400 font-bold text-center">DIA {i + 1}</span>
-                              <input
-                                type="number"
-                                value={formData[`${campo.id}_dia_${i + 1}`] || ""}
-                                onChange={(e) => setFormData({ ...formData, [`${campo.id}_dia_${i + 1}`]: e.target.value })}
-                                className="w-full p-2 text-center border border-slate-200 rounded-md text-sm"
-                              />
-                            </div>
-                          ))}
+                  <div className="p-4 grid grid-cols-1 xl:grid-cols-2 gap-3 justify-items-center">
+                    {secao.fieldIds.map((fieldId) => {
+                      const campo = camposPorId.get(fieldId);
+
+                      if (!campo) {
+                        return null;
+                      }
+
+                      const commonInputClasses = "w-full max-w-[140px] p-1.5 border border-slate-200 rounded-md text-[11px] focus:ring-2 focus:ring-green-500 outline-none bg-white";
+
+                      if (selectedModel?.id === "vm" && campo.categoria === "diario") {
+                        return renderCampoDiario(campo);
+                      }
+
+                      const valorAtual = formData[campo.id] ?? "";
+
+                      return (
+                        <div key={campo.id} className="mx-auto w-full max-w-[360px] rounded-xl border border-slate-100 bg-slate-50/70 p-2.5">
+                          <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                            {campo.label}
+                          </label>
+
+                          {campo.type === "select" ? (
+                            <select
+                              value={valorAtual}
+                              onChange={(e) => setFormData({ ...formData, [campo.id]: e.target.value })}
+                              className={commonInputClasses}
+                            >
+                              <option value="0">0</option>
+                              <option value="1">1</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="number"
+                              placeholder="0"
+                              value={valorAtual}
+                              onChange={(e) => setFormData({ ...formData, [campo.id]: e.target.value })}
+                              className={commonInputClasses}
+                            />
+                          )}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
 
           <div className="p-6 border-t border-slate-100 bg-white">
             <button
               onClick={handlePredict}
               disabled={isLoading || !isModeloSelected}
-              className={`w-full py-4 font-bold rounded-2xl shadow-lg flex justify-center items-center gap-2 transition-all ${
+              className={`mx-auto flex w-full max-w-[320px] justify-center items-center gap-2 py-4 font-bold rounded-2xl shadow-lg transition-all ${
                 isLoading ? "bg-slate-400 cursor-wait" : "bg-green-600 hover:bg-green-700 text-white"
               }`}
             >
