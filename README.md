@@ -13,7 +13,7 @@ Tecnologias utilizadas:
 
 > **Sistema de Apoio à Decisão Clínica (CDSS) com Inteligência Artificial Explicável (XAI) para Unidades de Terapia Intensiva.**
 
-O **MediDec** é uma aplicação web completa que utiliza modelos de Machine Learning (XGBoost) para auxiliar profissionais de saúde na predição de desfechos clínicos. O sistema vai além da predição, oferecendo Explicabilidade em Tempo Real (SHAP Values) e simulação de cenários terapêuticos ("What-if analysis").
+A interface proposta nesse repositório é uma aplicação web completa que utiliza modelos de Machine Learning (XGBoost) para auxiliar profissionais de saúde na predição de desfechos clínicos. O sistema vai além da predição, oferecendo Explicabilidade em Tempo Real (SHAP Values) e simulação de cenários terapêuticos ("What-if analysis").
 
 ---
 
@@ -89,27 +89,3 @@ pip install -r .\requirements.txt
 
 # Inicie o servidor
 uvicorn index:app --reload
-```
-
-A API estará rodando em: http://127.0.0.1:8000
-
-### 2. Configurando o Frontend
-
-```bash
-# Em outro terminal, volte para a raiz do projeto
-cd ..
-
-# Instale as dependências
-npm install
-
-# Inicie o projeto
-npm run dev
-```
-
-O terminal exibirá um link (geralmente http://localhost:5173). Segure a tecla Ctrl e clique no link para abrir o projeto.
-
-### Estrutura de Pastas Importantes:
-
-- **api/models/:** Contém os modelos treinados (.ubj).
-- **src/constants/modelsConfig.ts:** Configuração central dos modelos, campos e gráficos.
-- **src/pages/Prediction.tsx:** Componente principal de visualização e simulação.
